@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador 3D - Versão Estável</title>
+    <title>Orçador 3D - Versão Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
@@ -43,11 +43,22 @@
             <div class="space-y-6">
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
+                        <!-- SELETOR DE CORES -->
+                        <label class="text-[10px] font-black text-slate-500 uppercase">Cor do Filamento</label>
+                        <div class="flex gap-2 mb-6">
+                            <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Azul"></button>
+                            <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all" title="Preto"></button>
+                            <button onclick="changeColor('#ffffff')" class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 shadow-md hover:scale-110 transition-all" title="Branco"></button>
+                            <button onclick="changeColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Vermelho"></button>
+                            <button onclick="changeColor('#eab308')" class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Amarelo"></button>
+                        </div>
+
                         <label class="text-[10px] font-black text-slate-500 uppercase">Material</label>
                         <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
+                        
                         <label class="text-[10px] font-black text-slate-500 uppercase">Preenchimento</label>
                         <select id="infill" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.15">15% - Leve</option>
@@ -55,6 +66,7 @@
                             <option value="1.00">100% - Total</option>
                         </select>
                     </div>
+
                     <div class="mt-8 pt-6 border-t border-slate-100">
                         <div class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
@@ -102,7 +114,6 @@
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
             
-            // Atalhos de teclado
             window.addEventListener('keydown', (e) => {
                 switch(e.key.toLowerCase()) {
                     case 'w': setMode('translate'); break;
@@ -123,6 +134,12 @@
 
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
+
+        function changeColor(hex) {
+            if (mesh && mesh.material.uniforms) {
+                mesh.material.uniforms.color.value.set(hex);
+            }
+        }
 
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('drop-zone');
@@ -164,48 +181,42 @@
                     const loader = new THREE.STLLoader();
                     const geometry = loader.parse(ev.target.result);
                     
-                    // ESSENCIAL: Gerar normais para o cálculo de suporte funcionar
                     geometry.computeVertexNormals();
                     geometry.center();
 
-                 const materialImpressao = new THREE.ShaderMaterial({
-    uniforms: {
-        color: { value: new THREE.Color(0x3b82f6) },
-        layerHeight: { value: 0.3 },
-        lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() } // Direção da luz
-    },
-    vertexShader: `
-        varying vec3 vWorldPosition;
-        varying vec3 vNormal;
-        void main() {
-            vNormal = normalize(normalMatrix * normal); // Passa a direção das faces
-            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPosition.xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        varying vec3 vWorldPosition;
-        varying vec3 vNormal;
-        uniform vec3 color;
-        uniform float layerHeight;
-        uniform vec3 lightDirection;
+                    const materialImpressao = new THREE.ShaderMaterial({
+                        uniforms: {
+                            color: { value: new THREE.Color(0x3b82f6) },
+                            layerHeight: { value: 0.3 },
+                            lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
+                        },
+                        vertexShader: `
+                            varying vec3 vWorldPosition;
+                            varying vec3 vNormal;
+                            void main() {
+                                vNormal = normalize(normalMatrix * normal);
+                                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                                vWorldPosition = worldPosition.xyz;
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            }
+                        `,
+                        fragmentShader: `
+                            varying vec3 vWorldPosition;
+                            varying vec3 vNormal;
+                            uniform vec3 color;
+                            uniform float layerHeight;
+                            uniform vec3 lightDirection;
+                            void main() {
+                                float dotNL = max(dot(vNormal, lightDirection), 0.0);
+                                float intensity = 0.4 + 0.6 * dotNL;
+                                float level = fract(vWorldPosition.y / layerHeight);
+                                float edge = smoothstep(0.0, 0.15, level) * smoothstep(1.0, 0.85, level);
+                                vec3 layerColor = color * (0.8 + 0.2 * edge);
+                                gl_FragColor = vec4(layerColor * intensity, 1.0);
+                            }
+                        `
+                    });
 
-        void main() {
-            // 1. Cálculo de Iluminação (Contraste)
-            float dotNL = max(dot(vNormal, lightDirection), 0.0);
-            float intensity = 0.4 + 0.6 * dotNL; // 0.4 é a luz ambiente, 0.6 é a luz direta
-
-            // 2. Cálculo das Camadas
-            float level = fract(vWorldPosition.y / layerHeight);
-            float edge = smoothstep(0.0, 0.15, level) * smoothstep(1.0, 0.85, level);
-            
-            // Mistura a cor com a iluminação e o efeito de camadas
-            vec3 layerColor = color * (0.8 + 0.2 * edge);
-            gl_FragColor = vec4(layerColor * intensity, 1.0);
-        }
-    `
-});
                     if(mesh) { transform.detach(); scene.remove(mesh); }
                     
                     mesh = new THREE.Mesh(geometry, materialImpressao);
