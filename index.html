@@ -3,43 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador Profissional 3D - Corrigido</title>
+    <title>Orçador Profissional 3D - Final</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
-    </style>
+    <style>#viewer canvas { width: 100% !important; height: 100% !important; display: block; }</style>
 </head>
 <body class="bg-slate-50 font-sans">
     <div class="max-w-6xl mx-auto py-8 px-4">
         <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
             <h1 class="text-2xl font-black text-slate-800">SISTEMA <span class="text-blue-600">ORÇAMENTO 3D</span></h1>
             <div class="hidden md:block text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                Teclas: W (Mover) | E (Girar) | R (Escala)
+                W: Mover | E: Girar | R: Escala
             </div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
                 <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition-all cursor-pointer">
-                    <p id="drop-text" class="text-slate-500 font-bold text-xs uppercase">Clique ou arraste o arquivo STL</p>
+                    <p class="text-slate-500 font-bold text-xs uppercase">Clique ou arraste o arquivo STL</p>
                     <input type="file" id="fileInput" accept=".stl" class="hidden">
                 </div>
                 
                 <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-inner overflow-hidden hidden border-4 border-white">
                     <div id="viewer" class="w-full h-full"></div>
-                    
                     <div class="absolute top-4 left-4 flex flex-col gap-2">
                         <button onclick="setMode('translate')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Mover</button>
                         <button onclick="setMode('rotate')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Girar</button>
                         <button onclick="setMode('scale')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Escalar</button>
                     </div>
-
                     <div class="absolute bottom-4 right-4 bg-slate-800/80 text-white p-3 rounded-xl text-[11px] backdrop-blur-md border border-white/10">
-                        <span class="text-blue-400 font-black uppercase block mb-1 tracking-tighter">Dimensões Reais (XYZ):</span>
                         <span id="dims" class="font-mono text-lg">0 x 0 x 0</span> <span class="text-slate-400">mm</span>
                     </div>
                 </div>
@@ -47,40 +42,25 @@
 
             <div class="space-y-6">
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
-                    <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Configurações de Produção</h2>
-                    
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Material</label>
-                            <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-blue-500 font-bold text-slate-700">
-                                <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
-                                <option value="0.28">PETG - XT (R$ 0,28/g)</option>
-                                <option value="0.55">TPU - Flex (R$ 0,55/g)</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Preenchimento</label>
-                            <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 outline-none focus:border-blue-500 font-bold text-slate-700">
-                                <option value="0.15">15% - Leve</option>
-                                <option value="0.45">45% - Resistente</option>
-                                <option value="1.00">100% - Total</option>
-                            </select>
-                        </div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Material</label>
+                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold">
+                            <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
+                            <option value="0.28">PETG - XT (R$ 0,28/g)</option>
+                        </select>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Preenchimento</label>
+                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold">
+                            <option value="0.15">15% - Leve</option>
+                            <option value="0.45">45% - Resistente</option>
+                            <option value="1.00">100% - Total</option>
+                        </select>
                     </div>
-
                     <div class="mt-8 pt-6 border-t border-slate-100">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-[10px] font-black text-slate-400 uppercase">Total Estimado:</span>
-                        </div>
-                        <div class="bg-blue-600 p-5 rounded-2xl shadow-blue-200 shadow-2xl">
+                        <div class="bg-blue-600 p-5 rounded-2xl">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
                         </div>
                     </div>
-
-                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 hover:bg-slate-900 transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest">
-                        Enviar Orçamento ao WhatsApp
-                    </button>
+                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs">WhatsApp</button>
                 </div>
             </div>
         </div>
@@ -95,132 +75,60 @@
             if (scene) return;
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
-            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 1, 10000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
             viewerDiv.appendChild(renderer.domElement);
-
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             const light = new THREE.DirectionalLight(0xffffff, 0.6);
             light.position.set(500, 500, 500);
             scene.add(light);
+            scene.add(new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b));
 
-            const grid = new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b);
-            scene.add(grid);
+            orbit = new THREE.OrbitControls(camera, renderer.domElement);
+            transform = new THREE.TransformControls(camera, renderer.domElement);
 
-   orbit = new THREE.OrbitControls(camera, renderer.domElement);
-transform = new THREE.TransformControls(camera, renderer.domElement);
-
-// O SEGREDO ESTÁ AQUI:
-// 'change' detecta movimento. Mas o preço só deve mudar se a peça existir.
-transform.addEventListener('change', () => {
-    if (mesh) {
-        // Forçamos a atualização da matriz da peça para o cálculo de normais ser real
-        mesh.updateMatrixWorld(); 
-        updatePrice();
-    }
-});
-
-transform.addEventListener('dragging-changed', (e) => {
-    orbit.enabled = !e.value;
-});
-
-scene.add(transform);
-
-            window.addEventListener('keydown', (e) => {
-                switch (e.key.toLowerCase()) {
-                    case 'w': transform.setMode('translate'); break;
-                    case 'e': transform.setMode('rotate'); break;
-                    case 'r': transform.setMode('scale'); break;
+            // ATUALIZAÇÃO EM TEMPO REAL
+            transform.addEventListener('change', () => {
+                if (mesh) {
+                    keepOnGround(); // Trava a peça no chão
+                    updatePrice();
                 }
             });
-
+            transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
+            scene.add(transform);
             animate();
         }
 
+        function keepOnGround() {
+            const box = new THREE.Box3().setFromObject(mesh);
+            const offset = box.min.y;
+            mesh.position.y -= offset; // Move a peça para que o ponto mais baixo seja Y=0
+        }
+
         function setMode(m) { if(transform) transform.setMode(m); }
+        function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if(renderer && scene && camera) renderer.render(scene, camera);
-        }
-
-        // Lógica de Carregamento de Arquivo
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('drop-zone');
-
-        dropZone.onclick = () => fileInput.click();
-
-        dropZone.ondragover = (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-blue-500');
+        document.getElementById('fileInput').onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                initThree();
+                const loader = new THREE.STLLoader();
+                const geometry = loader.parse(ev.target.result);
+                if(mesh) { transform.detach(); scene.remove(mesh); }
+                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6 }));
+                geometry.center();
+                scene.add(mesh);
+                transform.attach(mesh);
+                keepOnGround();
+                currentVol = calculateVolume(geometry) / 1000;
+                document.getElementById('viewer-container').classList.remove('hidden');
+                document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
+                updatePrice();
+            };
+            reader.readAsArrayBuffer(file);
         };
-
-        dropZone.ondragleave = () => dropZone.classList.remove('border-blue-500');
-
-        dropZone.ondrop = (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
-            handleFile(e.dataTransfer.files[0]);
-        };
-
-        fileInput.onchange = (e) => handleFile(e.target.files[0]);
-
-        function handleFile(file) {
-    if(!file || !file.name.toLowerCase().endsWith('.stl')) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        initThree();
-        const loader = new THREE.STLLoader();
-        const geometry = loader.parse(ev.target.result);
-        
-        if(mesh) {
-            transform.detach();
-            scene.remove(mesh);
-        }
-        
-        const material = new THREE.MeshPhongMaterial({ color: 0x3b82f6, specular: 0x444444, shininess: 30 });
-        mesh = new THREE.Mesh(geometry, material);
-        
-        geometry.computeBoundingBox();
-        const box = geometry.boundingBox;
-        geometry.center(); 
-        mesh.position.y = (box.max.y - box.min.y) / 2;
-
-        scene.add(mesh);
-        transform.attach(mesh);
-
-        // --- AJUSTE PARA A PEÇA APARECER ---
-        document.getElementById('viewer-container').classList.remove('hidden');
-        document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-
-        // Força o Three.js a ler o tamanho novo da DIV após ela deixar de ser 'hidden'
-        setTimeout(() => {
-            const width = viewerDiv.clientWidth;
-            const height = viewerDiv.clientHeight;
-            renderer.setSize(width, height);
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-
-            const size = new THREE.Vector3();
-            box.getSize(size);
-            const maxDim = Math.max(size.x, size.y, size.z);
-            
-            camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
-            camera.lookAt(0,0,0);
-            orbit.target.set(0, 0, 0);
-            orbit.update();
-            
-            updatePrice();
-        }, 50); 
-        // -----------------------------------
-
-        currentVol = calculateVolume(geometry) / 1000;
-    };
-    reader.readAsArrayBuffer(file);
-}
 
         function calculateVolume(geo) {
             let vol = 0;
@@ -234,67 +142,37 @@ scene.add(transform);
             return Math.abs(vol);
         }
 
-       function updatePrice() {
-    if(!mesh) return;
+        function updatePrice() {
+            if(!mesh) return;
+            const custoFilamento = parseFloat(document.getElementById('material').value);
+            const scale = mesh.scale.x; 
+            const realVol = currentVol * Math.pow(scale, 3);
+            const infill = parseFloat(document.getElementById('infill').value);
+            
+            // ANALISAR ORIENTAÇÃO GLOBAL
+            let areaSuporte = 0;
+            const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+            const normals = mesh.geometry.attributes.normal.array;
+            const worldNormal = new THREE.Vector3();
 
-    const materialSelect = document.getElementById('material');
-    const custoFilamentoPorGrama = parseFloat(materialSelect.value); 
-    const custoEnergiaHora = 0.60;       
-    const margemLucro = 1.35;            
-    const setupOperacional = 2.00;      
-    const divisorVelocidade = 7.0;       
+            for(let i = 0; i < normals.length; i += 9) {
+                worldNormal.set(normals[i], normals[i+1], normals[i+2]);
+                worldNormal.applyMatrix3(normalMatrix).normalize();
+                if(worldNormal.y < -0.7) areaSuporte++; // Detecta faces para baixo no mundo real
+            }
 
-    const scale = mesh.scale.x; 
-    const realVol = currentVol * Math.pow(scale, 3);
-    const infill = parseFloat(document.getElementById('infill').value);
-    
-    // --- LÓGICA DE SUPORTE RECALIBRADA ---
-    let areaSuporteEstimada = 0;
-    
-    // Criamos uma matriz para entender a rotação atual da peça
-    const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-    const normals = mesh.geometry.attributes.normal.array;
-    const worldNormal = new THREE.Vector3();
+            const fatorSuporte = areaSuporte > 0 ? 1.20 : 1.0;
+            const peso = (realVol * 1.25 * infill) * fatorSuporte;
+            const precoFinal = (peso * custoFilamento * 1.35) + 2.00;
 
-    for(let i = 0; i < normals.length; i += 9) {
-        worldNormal.set(normals[i], normals[i+1], normals[i+2]);
-        worldNormal.applyMatrix3(normalMatrix).normalize();
-
-        // No Three.js, Y negativo (y < -0.7) é o que aponta para o chão
-        if(worldNormal.y < -0.7) { 
-            areaSuporteEstimada += 1; 
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3(); box.getSize(size);
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         }
-    }
-
-    // Se detectar faces para baixo, aplica o fator de suporte (15% extra)
-    const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;
-    // -------------------------------------
-
-    const peso = (realVol * 1.25 * infill) * fatorSuporte;
-    const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;
-    
-    const box = new THREE.Box3().setFromObject(mesh);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-
-    const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);
-    const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;
-
-    document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-    });
-}
 
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
-
-        function sendWA() {
-            const total = document.getElementById('total').innerText;
-            const dims = document.getElementById('dims').innerText;
-            const text = window.encodeURIComponent(`Olá! Orçamento 3D:\n📏 Medidas: ${dims} mm\n💰 Valor: ${total}\n\nEnvio o arquivo para sua análise.`);
-            window.open(`https://wa.me/55XXXXXXXXXXX?text=${text}`);
-        }
+        document.getElementById('drop-zone').onclick = () => document.getElementById('fileInput').click();
     </script>
 </body>
 </html>
