@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador 3D - Estabilizado</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/TransformControls.js"></script>
+    <title>Orçador 3D - Versão Estável</title>
+    <!-- Bibliotecas com versões fixas para evitar incompatibilidade -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
@@ -15,19 +16,19 @@
 </head>
 <body class="bg-slate-50 font-sans">
     <div class="max-w-6xl mx-auto py-8 px-4">
-        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h1 class="text-2xl font-black text-slate-800 uppercase">Orçador <span class="text-blue-600">3D</span></h1>
             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">W: Mover | E: Girar | R: Escala</div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
-                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-all cursor-pointer">
-                    <p class="text-slate-500 font-black text-xs uppercase">Selecione ou arraste seu arquivo STL</p>
+                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-all cursor-pointer">
+                    <p id="status-text" class="text-slate-500 font-black text-xs uppercase">Arraste o arquivo STL ou clique aqui</p>
                     <input type="file" id="fileInput" accept=".stl" class="hidden">
                 </div>
                 
-                <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-inner overflow-hidden hidden border-4 border-white">
+                <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden hidden border-4 border-white">
                     <div id="viewer" class="w-full h-full"></div>
                     <div class="absolute top-4 left-4 flex flex-col gap-2">
                         <button onclick="setMode('translate')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Mover</button>
@@ -35,7 +36,7 @@
                         <button onclick="setMode('scale')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Escalar</button>
                     </div>
                     <div class="absolute bottom-4 right-4 bg-slate-800/90 text-white p-3 rounded-xl text-[11px] backdrop-blur-md">
-                        <span id="dims" class="font-mono text-lg">0 x 0 x 0</span> <span class="text-slate-400">mm</span>
+                        <span id="dims" class="font-mono text-lg">0.0 x 0.0 x 0.0</span> <span class="text-slate-400">mm</span>
                     </div>
                 </div>
             </div>
@@ -44,23 +45,23 @@
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
                         <label class="text-[10px] font-black text-slate-500 uppercase">Material</label>
-                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
+                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
                         <label class="text-[10px] font-black text-slate-500 uppercase">Preenchimento</label>
-                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
+                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.15">15% - Leve</option>
                             <option value="0.45">45% - Resistente</option>
                             <option value="1.00">100% - Total</option>
                         </select>
                     </div>
                     <div class="mt-8 pt-6 border-t border-slate-100">
-                        <div class="bg-blue-600 p-5 rounded-2xl shadow-lg">
-                            <span id="total" class="block text-center text-3xl font-black text-white">R$ 0,00</span>
+                        <div class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200">
+                            <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
                         </div>
                     </div>
-                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs hover:bg-slate-900 transition-all">WhatsApp</button>
+                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs hover:bg-slate-900 transition-all">Enviar para WhatsApp</button>
                 </div>
             </div>
         </div>
@@ -76,17 +77,19 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
             
-            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 5000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             viewerDiv.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const light = new THREE.DirectionalLight(0xffffff, 0.6);
-            light.position.set(200, 200, 200);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const light = new THREE.PointLight(0xffffff, 0.8);
+            light.position.set(100, 100, 100);
             scene.add(light);
-            scene.add(new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b));
+            
+            const grid = new THREE.GridHelper(500, 50, 0x334155, 0x1e293b);
+            scene.add(grid);
 
             orbit = new THREE.OrbitControls(camera, renderer.domElement);
             transform = new THREE.TransformControls(camera, renderer.domElement);
@@ -99,6 +102,7 @@
             });
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
+            
             animate();
         }
 
@@ -112,48 +116,58 @@
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-        document.getElementById('fileInput').onchange = (e) => {
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('drop-zone');
+
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if(!file) return;
             
             const reader = new FileReader();
             reader.onload = (ev) => {
-                initThree();
-                // CORREÇÃO AQUI: Chamada correta da biblioteca THREE.STLLoader
-                const loader = new THREE.STLLoader();
-                const geometry = loader.parse(ev.target.result);
-                
-                if(mesh) { transform.detach(); scene.remove(mesh); }
-                
-                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 30 }));
-                geometry.center();
-                scene.add(mesh);
-                transform.attach(mesh);
-                
-                document.getElementById('viewer-container').classList.remove('hidden');
-                document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-
-                setTimeout(() => {
-                    const w = viewerDiv.clientWidth;
-                    const h = viewerDiv.clientHeight;
-                    renderer.setSize(w, h);
-                    camera.aspect = w / h;
-                    camera.updateProjectionMatrix();
-
-                    keepOnGround();
+                try {
+                    initThree();
+                    const loader = new THREE.STLLoader();
+                    const geometry = loader.parse(ev.target.result);
                     
-                    const box = new THREE.Box3().setFromObject(mesh);
-                    const size = new THREE.Vector3();
-                    box.getSize(size);
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
-                    camera.lookAt(0, 0, 0);
-                    orbit.target.set(0, 0, 0);
-                    orbit.update();
+                    if(mesh) { transform.detach(); scene.remove(mesh); }
+                    
+                    mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 50 }));
+                    geometry.center();
+                    scene.add(mesh);
+                    transform.attach(mesh);
+                    
+                    document.getElementById('viewer-container').classList.remove('hidden');
+                    document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
+                    document.getElementById('status-text').innerText = "Arquivo: " + file.name;
 
-                    currentVol = calculateVolume(geometry) / 1000;
-                    updatePrice();
-                }, 100);
+                    setTimeout(() => {
+                        const w = viewerDiv.clientWidth;
+                        const h = viewerDiv.clientHeight;
+                        renderer.setSize(w, h);
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+
+                        keepOnGround();
+                        
+                        const box = new THREE.Box3().setFromObject(mesh);
+                        const size = new THREE.Vector3();
+                        box.getSize(size);
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                        camera.lookAt(0, 0, 0);
+                        orbit.target.set(0, 0, 0);
+                        orbit.update();
+
+                        currentVol = calculateVolume(geometry) / 1000;
+                        updatePrice();
+                    }, 100);
+                } catch (err) {
+                    alert("Erro ao processar o arquivo STL. Verifique se o arquivo está íntegro.");
+                    console.error(err);
+                }
             };
             reader.readAsArrayBuffer(file);
         };
@@ -186,10 +200,10 @@
             for(let i = 0; i < normals.length; i += 9) {
                 worldNormal.set(normals[i], normals[i+1], normals[i+2]);
                 worldNormal.applyMatrix3(normalMatrix).normalize();
-                if(worldNormal.y < -0.8) areaSuporte++;
+                if(worldNormal.y < -0.7) areaSuporte++;
             }
 
-            const fatorSuporte = areaSuporte > 0 ? 1.20 : 1.0;
+            const fatorSuporte = areaSuporte > 0 ? 1.25 : 1.0;
             const peso = (realVol * 1.25 * infill) * fatorSuporte;
             const precoFinal = (peso * custoFilamento * 1.45) + 3.00;
 
@@ -198,15 +212,15 @@
             box.getSize(size);
             
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            // FORMATAÇÃO GARANTIDA: Duas casas decimais
+            document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
         }
 
-        document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
-        document.getElementById('drop-zone').onclick = () => document.getElementById('fileInput').click();
-        
         function sendWA() {
             const total = document.getElementById('total').innerText;
-            const text = window.encodeURIComponent(`Olá! Fiz um orçamento 3D:\nValor: ${total}\n\nEnvio o arquivo para análise.`);
+            const dims = document.getElementById('dims').innerText;
+            const text = window.encodeURIComponent(`Olá! Fiz um orçamento no Orçador 3D:\n📏 Medidas: ${dims} mm\n💰 Valor Estimado: ${total}\n\nO que acha?`);
             window.open(`https://wa.me/55XXXXXXXXXXX?text=${text}`);
         }
     </script>
