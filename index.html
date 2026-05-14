@@ -116,15 +116,47 @@
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-        const fileInput = document.getElementById('fileInput');
+      const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('drop-zone');
 
+        // 1. Clique para abrir
         dropZone.onclick = () => fileInput.click();
 
+        // 2. Previne o comportamento padrão do navegador (abrir o arquivo em outra aba)
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // 3. Efeito visual ao arrastar por cima
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-blue-500', 'bg-blue-50'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-blue-500', 'bg-blue-50'), false);
+        });
+
+        // 4. Lida com o arquivo solto na zona
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file && file.name.toLowerCase().endsWith('.stl')) {
+                handleFile(file);
+            } else {
+                alert("Por favor, envie um arquivo .STL");
+            }
+        });
+
+        // 5. Lida com o arquivo selecionado via clique
         fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            
+            if(e.target.files[0]) handleFile(e.target.files[0]);
+        };
+
+        // Função unificada para processar o arquivo (sua lógica atual)
+        function handleFile(file) {
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
@@ -143,7 +175,6 @@
                     document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
                     document.getElementById('status-text').innerText = "Arquivo: " + file.name;
 
-                    // IMPORTANTE: Calculamos o volume BASE primeiro
                     currentVol = calculateVolume(geometry) / 1000;
 
                     setTimeout(() => {
