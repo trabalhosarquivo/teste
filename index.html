@@ -143,6 +143,9 @@
                     document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
                     document.getElementById('status-text').innerText = "Arquivo: " + file.name;
 
+                    // IMPORTANTE: Calculamos o volume BASE primeiro
+                    currentVol = calculateVolume(geometry) / 1000;
+
                     setTimeout(() => {
                         const w = viewerDiv.clientWidth;
                         const h = viewerDiv.clientHeight;
@@ -161,11 +164,10 @@
                         orbit.target.set(0, 0, 0);
                         orbit.update();
 
-                        currentVol = calculateVolume(geometry) / 1000;
                         updatePrice();
                     }, 100);
                 } catch (err) {
-                    alert("Erro ao processar o arquivo STL. Verifique se o arquivo está íntegro.");
+                    alert("Erro ao processar o arquivo STL.");
                     console.error(err);
                 }
             };
@@ -184,51 +186,52 @@
             return Math.abs(vol);
         }
 
-       function updatePrice() {
-    if(!mesh) return;
-    const custoFilamento = parseFloat(document.getElementById('material').value);
-    const scale = mesh.scale.x; 
-    const realVol = currentVol * Math.pow(scale, 3);
-    const infill = parseFloat(document.getElementById('infill').value);
-    
-    // --- COLE O NOVO CÁLCULO DE SUPORTE AQUI ---
-    let volumeSuporteExtra = 0;
-    mesh.updateMatrixWorld(); // Garante que a posição atual seja considerada
-    const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-    const positions = mesh.geometry.attributes.position.array;
-    const normals = mesh.geometry.attributes.normal.array;
+        function updatePrice() {
+            // BLINDAGEM: Se a malha não existe ou não tem geometria, aborta para não travar o script
+            if(!mesh || !mesh.geometry || !mesh.geometry.attributes.position) return;
 
-    for (let i = 0; i < positions.length; i += 9) {
-        const worldNormal = new THREE.Vector3(normals[i], normals[i+1], normals[i+2]);
-        worldNormal.applyMatrix3(normalMatrix).normalize();
+            const custoFilamento = parseFloat(document.getElementById('material').value);
+            const scale = mesh.scale.x; 
+            const realVol = currentVol * Math.pow(scale, 3);
+            const infill = parseFloat(document.getElementById('infill').value);
+            
+            let volumeSuporteExtra = 0;
+            mesh.updateMatrixWorld(); 
+            
+            const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+            const positions = mesh.geometry.attributes.position.array;
+            const normals = mesh.geometry.attributes.normal.array;
 
-        // Se a face aponta para baixo (ângulo de suporte < 45°)
-        if (worldNormal.y < -0.7) { 
-            const vA = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]).applyMatrix4(mesh.matrixWorld);
-            const vB = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]).applyMatrix4(mesh.matrixWorld);
-            const vC = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]).applyMatrix4(mesh.matrixWorld);
+            // Loop otimizado para cálculo de suporte
+            for (let i = 0; i < positions.length; i += 9) {
+                const worldNormal = new THREE.Vector3(normals[i], normals[i+1], normals[i+2]);
+                worldNormal.applyMatrix3(normalMatrix).normalize();
+
+                // Ângulo crítico de suporte (0.7 equivale a ~45 graus)
+                if (worldNormal.y < -0.7) { 
+                    const vA = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]).applyMatrix4(mesh.matrixWorld);
+                    const vB = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]).applyMatrix4(mesh.matrixWorld);
+                    const vC = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]).applyMatrix4(mesh.matrixWorld);
+                    
+                    const areaTriangulo = new THREE.Triangle(vA, vB, vC).getArea();
+                    const alturaMedia = (vA.y + vB.y + vC.y) / 3;
+                    
+                    // Garante que a altura não seja negativa e aplica densidade de 15%
+                    volumeSuporteExtra += (areaTriangulo * Math.max(0, alturaMedia)) * 0.15;
+                }
+            }
+
+            const volumeTotalComSuporte = realVol + (volumeSuporteExtra / 1000); 
+            const peso = volumeTotalComSuporte * 1.25 * infill;
+            const precoFinal = (peso * custoFilamento * 1.45) + 3.00;
+
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3(); 
+            box.getSize(size);
             
-            const areaTriangulo = new THREE.Triangle(vA, vB, vC).getArea();
-            const alturaMedia = (vA.y + vB.y + vC.y) / 3;
-            
-            // Projeta o volume até o chão (Y=0) com densidade de 15%
-            volumeSuporteExtra += (areaTriangulo * alturaMedia) * 0.15;
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+            document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
         }
-    }
-
-    const volumeTotalComSuporte = realVol + (volumeSuporteExtra / 1000); 
-    const peso = volumeTotalComSuporte * 1.25 * infill;
-    // -------------------------------------------
-
-    const precoFinal = (peso * custoFilamento * 1.45) + 3.00;
-
-    // Atualização visual (Dimensões e Preço com 2 casas decimais)
-    const box = new THREE.Box3().setFromObject(mesh);
-    const size = new THREE.Vector3(); 
-    box.getSize(size);
-    document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-    document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
-}
 
         function sendWA() {
             const total = document.getElementById('total').innerText;
