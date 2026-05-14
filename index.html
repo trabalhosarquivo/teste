@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçador 3D - Versão Estável</title>
-    <!-- Bibliotecas com versões fixas para evitar incompatibilidade -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
@@ -45,12 +44,12 @@
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
                         <label class="text-[10px] font-black text-slate-500 uppercase">Material</label>
-                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
+                        <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
                         <label class="text-[10px] font-black text-slate-500 uppercase">Preenchimento</label>
-                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
+                        <select id="infill" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.15">15% - Leve</option>
                             <option value="0.45">45% - Resistente</option>
                             <option value="1.00">100% - Total</option>
@@ -103,6 +102,15 @@
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
             
+            // Atalhos de teclado
+            window.addEventListener('keydown', (e) => {
+                switch(e.key.toLowerCase()) {
+                    case 'w': setMode('translate'); break;
+                    case 'e': setMode('rotate'); break;
+                    case 'r': setMode('scale'); break;
+                }
+            });
+
             animate();
         }
 
@@ -116,13 +124,11 @@
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-      const fileInput = document.getElementById('fileInput');
+        const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('drop-zone');
 
-        // 1. Clique para abrir
         dropZone.onclick = () => fileInput.click();
 
-        // 2. Previne o comportamento padrão do navegador (abrir o arquivo em outra aba)
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -130,7 +136,6 @@
             }, false);
         });
 
-        // 3. Efeito visual ao arrastar por cima
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => dropZone.classList.add('border-blue-500', 'bg-blue-50'), false);
         });
@@ -139,62 +144,59 @@
             dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-blue-500', 'bg-blue-50'), false);
         });
 
-        // 4. Lida com o arquivo solto na zona
         dropZone.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const file = dt.files[0];
             if (file && file.name.toLowerCase().endsWith('.stl')) {
                 handleFile(file);
-            } else {
-                alert("Por favor, envie um arquivo .STL");
             }
         });
 
-        // 5. Lida com o arquivo selecionado via clique
         fileInput.onchange = (e) => {
             if(e.target.files[0]) handleFile(e.target.files[0]);
         };
 
-        // Função unificada para processar o arquivo (sua lógica atual)
         function handleFile(file) {
             const reader = new FileReader();
             reader.onload = (ev) => {
                 try {
                     initThree();
-                   const materialImpressao = new THREE.ShaderMaterial({
-    uniforms: {
-        color: { value: new THREE.Color(0x3b82f6) }, // Cor base (Azul)
-        layerHeight: { value: 0.2 },                  // Altura da camada em mm
-    },
-    vertexShader: `
-        varying vec3 vWorldPosition;
-        void main() {
-            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPosition.xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        varying vec3 vWorldPosition;
-        uniform vec3 color;
-        uniform float layerHeight;
-        void main() {
-            // Cria um padrão de repetição baseado na altura (Y)
-            float level = fract(vWorldPosition.y / layerHeight);
-            
-            // Cria uma sombra sutil na borda de cada camada
-            float edge = smoothstep(0.0, 0.1, level) * smoothstep(1.0, 0.9, level);
-            vec3 finalColor = color * (0.85 + 0.15 * edge);
-            
-            gl_FragColor = vec4(finalColor, 1.0);
-        }
-    `
-});
-
-// 2. Aplicação no Mesh
-if(mesh) { transform.detach(); scene.remove(mesh); }
-mesh = new THREE.Mesh(geometry, materialImpressao);
+                    const loader = new THREE.STLLoader();
+                    const geometry = loader.parse(ev.target.result);
+                    
+                    // ESSENCIAL: Gerar normais para o cálculo de suporte funcionar
+                    geometry.computeVertexNormals();
                     geometry.center();
+
+                    const materialImpressao = new THREE.ShaderMaterial({
+                        uniforms: {
+                            color: { value: new THREE.Color(0x3b82f6) },
+                            layerHeight: { value: 0.3 } // Altura da camada visual
+                        },
+                        vertexShader: `
+                            varying vec3 vWorldPosition;
+                            void main() {
+                                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                                vWorldPosition = worldPosition.xyz;
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            }
+                        `,
+                        fragmentShader: `
+                            varying vec3 vWorldPosition;
+                            uniform vec3 color;
+                            uniform float layerHeight;
+                            void main() {
+                                float level = fract(vWorldPosition.y / layerHeight);
+                                float edge = smoothstep(0.0, 0.15, level) * smoothstep(1.0, 0.85, level);
+                                vec3 finalColor = color * (0.85 + 0.15 * edge);
+                                gl_FragColor = vec4(finalColor, 1.0);
+                            }
+                        `
+                    });
+
+                    if(mesh) { transform.detach(); scene.remove(mesh); }
+                    
+                    mesh = new THREE.Mesh(geometry, materialImpressao);
                     scene.add(mesh);
                     transform.attach(mesh);
                     
@@ -210,7 +212,6 @@ mesh = new THREE.Mesh(geometry, materialImpressao);
                         renderer.setSize(w, h);
                         camera.aspect = w / h;
                         camera.updateProjectionMatrix();
-
                         keepOnGround();
                         
                         const box = new THREE.Box3().setFromObject(mesh);
@@ -221,16 +222,14 @@ mesh = new THREE.Mesh(geometry, materialImpressao);
                         camera.lookAt(0, 0, 0);
                         orbit.target.set(0, 0, 0);
                         orbit.update();
-
                         updatePrice();
                     }, 100);
                 } catch (err) {
-                    alert("Erro ao processar o arquivo STL.");
                     console.error(err);
                 }
             };
             reader.readAsArrayBuffer(file);
-        };
+        }
 
         function calculateVolume(geo) {
             let vol = 0;
@@ -245,8 +244,7 @@ mesh = new THREE.Mesh(geometry, materialImpressao);
         }
 
         function updatePrice() {
-            // BLINDAGEM: Se a malha não existe ou não tem geometria, aborta para não travar o script
-            if(!mesh || !mesh.geometry || !mesh.geometry.attributes.position) return;
+            if(!mesh || !mesh.geometry.attributes.normal) return;
 
             const custoFilamento = parseFloat(document.getElementById('material').value);
             const scale = mesh.scale.x; 
@@ -260,21 +258,16 @@ mesh = new THREE.Mesh(geometry, materialImpressao);
             const positions = mesh.geometry.attributes.position.array;
             const normals = mesh.geometry.attributes.normal.array;
 
-            // Loop otimizado para cálculo de suporte
             for (let i = 0; i < positions.length; i += 9) {
                 const worldNormal = new THREE.Vector3(normals[i], normals[i+1], normals[i+2]);
                 worldNormal.applyMatrix3(normalMatrix).normalize();
 
-                // Ângulo crítico de suporte (0.7 equivale a ~45 graus)
                 if (worldNormal.y < -0.7) { 
                     const vA = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]).applyMatrix4(mesh.matrixWorld);
                     const vB = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]).applyMatrix4(mesh.matrixWorld);
                     const vC = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]).applyMatrix4(mesh.matrixWorld);
-                    
                     const areaTriangulo = new THREE.Triangle(vA, vB, vC).getArea();
                     const alturaMedia = (vA.y + vB.y + vC.y) / 3;
-                    
-                    // Garante que a altura não seja negativa e aplica densidade de 15%
                     volumeSuporteExtra += (areaTriangulo * Math.max(0, alturaMedia)) * 0.15;
                 }
             }
@@ -294,7 +287,7 @@ mesh = new THREE.Mesh(geometry, materialImpressao);
         function sendWA() {
             const total = document.getElementById('total').innerText;
             const dims = document.getElementById('dims').innerText;
-            const text = window.encodeURIComponent(`Olá! Fiz um orçamento no Orçador 3D:\n📏 Medidas: ${dims} mm\n💰 Valor Estimado: ${total}\n\nO que acha?`);
+            const text = window.encodeURIComponent(`Olá! Fiz um orçamento no Orçador 3D:\n📏 Medidas: ${dims} mm\n💰 Valor Estimado: ${total}`);
             window.open(`https://wa.me/5511996161878?text=${text}`);
         }
     </script>
