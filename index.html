@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador Profissional 3D - Final</title>
+    <title>Orçador 3D Profissional</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/TransformControls.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>#viewer canvas { width: 100% !important; height: 100% !important; display: block; }</style>
+    <style>
+        #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
+    </style>
 </head>
 <body class="bg-slate-50 font-sans">
     <div class="max-w-6xl mx-auto py-8 px-4">
@@ -44,23 +46,23 @@
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Material</label>
-                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold">
+                        <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
                             <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
                         <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Preenchimento</label>
-                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold">
+                        <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
                             <option value="0.15">15% - Leve</option>
                             <option value="0.45">45% - Resistente</option>
                             <option value="1.00">100% - Total</option>
                         </select>
                     </div>
                     <div class="mt-8 pt-6 border-t border-slate-100">
-                        <div class="bg-blue-600 p-5 rounded-2xl">
+                        <div class="bg-blue-600 p-5 rounded-2xl shadow-xl">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
                         </div>
                     </div>
-                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs">WhatsApp</button>
+                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs tracking-widest hover:bg-slate-900 transition-all">Enviar WhatsApp</button>
                 </div>
             </div>
         </div>
@@ -75,10 +77,13 @@
             if (scene) return;
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
-            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 1, 10000);
+            
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             viewerDiv.appendChild(renderer.domElement);
+
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             const light = new THREE.DirectionalLight(0xffffff, 0.6);
             light.position.set(500, 500, 500);
@@ -88,47 +93,82 @@
             orbit = new THREE.OrbitControls(camera, renderer.domElement);
             transform = new THREE.TransformControls(camera, renderer.domElement);
 
-            // ATUALIZAÇÃO EM TEMPO REAL
             transform.addEventListener('change', () => {
                 if (mesh) {
-                    keepOnGround(); // Trava a peça no chão
+                    keepOnGround();
                     updatePrice();
                 }
             });
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
+
+            window.addEventListener('keydown', (e) => {
+                switch (e.key.toLowerCase()) {
+                    case 'w': setMode('translate'); break;
+                    case 'e': setMode('rotate'); break;
+                    case 'r': setMode('scale'); break;
+                }
+            });
+
             animate();
         }
 
         function keepOnGround() {
+            if(!mesh) return;
+            mesh.updateMatrixWorld();
             const box = new THREE.Box3().setFromObject(mesh);
-            const offset = box.min.y;
-            mesh.position.y -= offset; // Move a peça para que o ponto mais baixo seja Y=0
+            mesh.position.y -= box.min.y;
         }
 
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-        document.getElementById('fileInput').onchange = (e) => {
-            const file = e.target.files[0];
+        function handleFile(file) {
+            if(!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
                 initThree();
-                const loader = new THREE.STLLoader();
-                const geometry = loader.parse(ev.target.result);
+                const loader = new STLLoader(); // Note: Dependendo da versão pode ser THREE.STLLoader
+                const geometry = new THREE.STLLoader().parse(ev.target.result);
+                
                 if(mesh) { transform.detach(); scene.remove(mesh); }
-                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6 }));
+                
+                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6, specular: 0x111111, shininess: 30 }));
                 geometry.center();
                 scene.add(mesh);
                 transform.attach(mesh);
-                keepOnGround();
-                currentVol = calculateVolume(geometry) / 1000;
+                
+                // Exibe o container antes de calcular a câmera
                 document.getElementById('viewer-container').classList.remove('hidden');
                 document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-                updatePrice();
+
+                setTimeout(() => {
+                    // Redimensiona para capturar o tamanho real da div agora visível
+                    const w = viewerDiv.clientWidth;
+                    const h = viewerDiv.clientHeight;
+                    renderer.setSize(w, h);
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+
+                    keepOnGround();
+                    
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const size = new THREE.Vector3();
+                    box.getSize(size);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                    camera.lookAt(0, 0, 0);
+                    orbit.target.set(0, 0, 0);
+                    orbit.update();
+
+                    currentVol = calculateVolume(geometry) / 1000;
+                    updatePrice();
+                }, 60);
             };
             reader.readAsArrayBuffer(file);
-        };
+        }
+
+        document.getElementById('fileInput').onchange = (e) => handleFile(e.target.files[0]);
 
         function calculateVolume(geo) {
             let vol = 0;
@@ -149,8 +189,8 @@
             const realVol = currentVol * Math.pow(scale, 3);
             const infill = parseFloat(document.getElementById('infill').value);
             
-            // ANALISAR ORIENTAÇÃO GLOBAL
             let areaSuporte = 0;
+            mesh.updateMatrixWorld();
             const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
             const normals = mesh.geometry.attributes.normal.array;
             const worldNormal = new THREE.Vector3();
@@ -158,17 +198,24 @@
             for(let i = 0; i < normals.length; i += 9) {
                 worldNormal.set(normals[i], normals[i+1], normals[i+2]);
                 worldNormal.applyMatrix3(normalMatrix).normalize();
-                if(worldNormal.y < -0.7) areaSuporte++; // Detecta faces para baixo no mundo real
+                if(worldNormal.y < -0.75) areaSuporte++;
             }
 
             const fatorSuporte = areaSuporte > 0 ? 1.20 : 1.0;
-            const peso = (realVol * 1.25 * infill) * fatorSuporte;
-            const precoFinal = (peso * custoFilamento * 1.35) + 2.00;
+            const pesoEstimado = (realVol * 1.24 * infill) * fatorSuporte; // 1.24g/cm3 densidade média
+            const precoFinal = (pesoEstimado * custoFilamento * 1.4) + 2.00;
 
             const box = new THREE.Box3().setFromObject(mesh);
-            const size = new THREE.Vector3(); box.getSize(size);
+            const size = new THREE.Vector3(); 
+            box.getSize(size);
+            
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            
+            // Correção para 2 casas decimais fixa
+            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2 
+            });
         }
 
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
