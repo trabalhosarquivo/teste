@@ -109,14 +109,17 @@
             const grid = new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b);
             scene.add(grid);
 
-            // --- COPIE A PARTIR DAQUI ---
-orbit = new THREE.OrbitControls(camera, renderer.domElement);
+   orbit = new THREE.OrbitControls(camera, renderer.domElement);
 transform = new THREE.TransformControls(camera, renderer.domElement);
 
-// Esta é a parte crucial: toda vez que você mexer no gizmo (girar, mover ou escalar), 
-// ele vai disparar o cálculo do preço automaticamente.
+// O SEGREDO ESTÁ AQUI:
+// 'change' detecta movimento. Mas o preço só deve mudar se a peça existir.
 transform.addEventListener('change', () => {
-    if (mesh) updatePrice(); 
+    if (mesh) {
+        // Forçamos a atualização da matriz da peça para o cálculo de normais ser real
+        mesh.updateMatrixWorld(); 
+        updatePrice();
+    }
 });
 
 transform.addEventListener('dragging-changed', (e) => {
@@ -124,7 +127,6 @@ transform.addEventListener('dragging-changed', (e) => {
 });
 
 scene.add(transform);
-// --- ATÉ AQUI ---
 
             window.addEventListener('keydown', (e) => {
                 switch (e.key.toLowerCase()) {
@@ -232,43 +234,58 @@ scene.add(transform);
             return Math.abs(vol);
         }
 
-        function updatePrice() {
-            if(!mesh) return;
+       function updatePrice() {
+    if(!mesh) return;
 
-            const materialSelect = document.getElementById('material');
-            const custoFilamentoPorGrama = parseFloat(materialSelect.value); 
-            const custoEnergiaHora = 0.60;       
-            const margemLucro = 1.35;            
-            const setupOperacional = 2.00;      
-            const divisorVelocidade = 7.0;       
+    const materialSelect = document.getElementById('material');
+    const custoFilamentoPorGrama = parseFloat(materialSelect.value); 
+    const custoEnergiaHora = 0.60;       
+    const margemLucro = 1.35;            
+    const setupOperacional = 2.00;      
+    const divisorVelocidade = 7.0;       
 
-            const scale = mesh.scale.x; 
-            const realVol = currentVol * Math.pow(scale, 3);
-            const infill = parseFloat(document.getElementById('infill').value);
-            
-            let areaSuporteEstimada = 0;
-            const normals = mesh.geometry.attributes.normal.array;
-            for(let i = 0; i < normals.length; i += 9) {
-                if(normals[i+2] < -0.7) { areaSuporteEstimada += 1; }
-            }
-            const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;
+    const scale = mesh.scale.x; 
+    const realVol = currentVol * Math.pow(scale, 3);
+    const infill = parseFloat(document.getElementById('infill').value);
+    
+    // --- LÓGICA DE SUPORTE RECALIBRADA ---
+    let areaSuporteEstimada = 0;
+    
+    // Criamos uma matriz para entender a rotação atual da peça
+    const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+    const normals = mesh.geometry.attributes.normal.array;
+    const worldNormal = new THREE.Vector3();
 
-            const peso = (realVol * 1.25 * infill) * fatorSuporte;
-            const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;
-            
-            const box = new THREE.Box3().setFromObject(mesh);
-            const size = new THREE.Vector3();
-            box.getSize(size);
-            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+    for(let i = 0; i < normals.length; i += 9) {
+        worldNormal.set(normals[i], normals[i+1], normals[i+2]);
+        worldNormal.applyMatrix3(normalMatrix).normalize();
 
-            const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);
-            const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;
-
-            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-            });
+        // No Three.js, Y negativo (y < -0.7) é o que aponta para o chão
+        if(worldNormal.y < -0.7) { 
+            areaSuporteEstimada += 1; 
         }
+    }
+
+    // Se detectar faces para baixo, aplica o fator de suporte (15% extra)
+    const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;
+    // -------------------------------------
+
+    const peso = (realVol * 1.25 * infill) * fatorSuporte;
+    const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;
+    
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+
+    const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);
+    const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;
+
+    document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    });
+}
 
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
 
