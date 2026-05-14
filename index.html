@@ -109,15 +109,22 @@
             const grid = new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b);
             scene.add(grid);
 
-            orbit = new THREE.OrbitControls(camera, renderer.domElement);
-            transform = new THREE.TransformControls(camera, renderer.domElement);
-            
-            transform.addEventListener('dragging-changed', (e) => {
-                orbit.enabled = !e.value;
-                if (!e.value) updatePrice();
-            });
-            
-            scene.add(transform);
+            // --- COPIE A PARTIR DAQUI ---
+orbit = new THREE.OrbitControls(camera, renderer.domElement);
+transform = new THREE.TransformControls(camera, renderer.domElement);
+
+// Esta é a parte crucial: toda vez que você mexer no gizmo (girar, mover ou escalar), 
+// ele vai disparar o cálculo do preço automaticamente.
+transform.addEventListener('change', () => {
+    if (mesh) updatePrice(); 
+});
+
+transform.addEventListener('dragging-changed', (e) => {
+    orbit.enabled = !e.value;
+});
+
+scene.add(transform);
+// --- ATÉ AQUI ---
 
             window.addEventListener('keydown', (e) => {
                 switch (e.key.toLowerCase()) {
