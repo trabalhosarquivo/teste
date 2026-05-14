@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador 3D Profissional</title>
+    <title>Orçador 3D - Estabilizado</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
@@ -16,27 +16,25 @@
 <body class="bg-slate-50 font-sans">
     <div class="max-w-6xl mx-auto py-8 px-4">
         <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
-            <h1 class="text-2xl font-black text-slate-800">SISTEMA <span class="text-blue-600">ORÇAMENTO 3D</span></h1>
-            <div class="hidden md:block text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                W: Mover | E: Girar | R: Escala
-            </div>
+            <h1 class="text-2xl font-black text-slate-800 uppercase">Orçador <span class="text-blue-600">3D</span></h1>
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">W: Mover | E: Girar | R: Escala</div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
-                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition-all cursor-pointer">
-                    <p class="text-slate-500 font-bold text-xs uppercase">Clique ou arraste o arquivo STL</p>
+                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-blue-400 transition-all cursor-pointer">
+                    <p class="text-slate-500 font-black text-xs uppercase">Selecione ou arraste seu arquivo STL</p>
                     <input type="file" id="fileInput" accept=".stl" class="hidden">
                 </div>
                 
                 <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-inner overflow-hidden hidden border-4 border-white">
                     <div id="viewer" class="w-full h-full"></div>
                     <div class="absolute top-4 left-4 flex flex-col gap-2">
-                        <button onclick="setMode('translate')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Mover</button>
-                        <button onclick="setMode('rotate')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Girar</button>
-                        <button onclick="setMode('scale')" class="bg-white text-slate-800 p-2 rounded-lg text-[10px] font-black shadow-lg hover:bg-blue-500 hover:text-white transition-all uppercase">Escalar</button>
+                        <button onclick="setMode('translate')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Mover</button>
+                        <button onclick="setMode('rotate')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Girar</button>
+                        <button onclick="setMode('scale')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Escalar</button>
                     </div>
-                    <div class="absolute bottom-4 right-4 bg-slate-800/80 text-white p-3 rounded-xl text-[11px] backdrop-blur-md border border-white/10">
+                    <div class="absolute bottom-4 right-4 bg-slate-800/90 text-white p-3 rounded-xl text-[11px] backdrop-blur-md">
                         <span id="dims" class="font-mono text-lg">0 x 0 x 0</span> <span class="text-slate-400">mm</span>
                     </div>
                 </div>
@@ -45,12 +43,12 @@
             <div class="space-y-6">
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Material</label>
+                        <label class="text-[10px] font-black text-slate-500 uppercase">Material</label>
                         <select id="material" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
                             <option value="0.11">PLA - Pro (R$ 0,11/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
-                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Preenchimento</label>
+                        <label class="text-[10px] font-black text-slate-500 uppercase">Preenchimento</label>
                         <select id="infill" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 font-bold text-slate-700">
                             <option value="0.15">15% - Leve</option>
                             <option value="0.45">45% - Resistente</option>
@@ -58,11 +56,11 @@
                         </select>
                     </div>
                     <div class="mt-8 pt-6 border-t border-slate-100">
-                        <div class="bg-blue-600 p-5 rounded-2xl shadow-xl">
-                            <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
+                        <div class="bg-blue-600 p-5 rounded-2xl shadow-lg">
+                            <span id="total" class="block text-center text-3xl font-black text-white">R$ 0,00</span>
                         </div>
                     </div>
-                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs tracking-widest hover:bg-slate-900 transition-all">Enviar WhatsApp</button>
+                    <button onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs hover:bg-slate-900 transition-all">WhatsApp</button>
                 </div>
             </div>
         </div>
@@ -86,7 +84,7 @@
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             const light = new THREE.DirectionalLight(0xffffff, 0.6);
-            light.position.set(500, 500, 500);
+            light.position.set(200, 200, 200);
             scene.add(light);
             scene.add(new THREE.GridHelper(1000, 100, 0x334155, 0x1e293b));
 
@@ -101,15 +99,6 @@
             });
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
-
-            window.addEventListener('keydown', (e) => {
-                switch (e.key.toLowerCase()) {
-                    case 'w': setMode('translate'); break;
-                    case 'e': setMode('rotate'); break;
-                    case 'r': setMode('scale'); break;
-                }
-            });
-
             animate();
         }
 
@@ -123,27 +112,28 @@
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
-        function handleFile(file) {
+        document.getElementById('fileInput').onchange = (e) => {
+            const file = e.target.files[0];
             if(!file) return;
+            
             const reader = new FileReader();
             reader.onload = (ev) => {
                 initThree();
-                const loader = new STLLoader(); // Note: Dependendo da versão pode ser THREE.STLLoader
-                const geometry = new THREE.STLLoader().parse(ev.target.result);
+                // CORREÇÃO AQUI: Chamada correta da biblioteca THREE.STLLoader
+                const loader = new THREE.STLLoader();
+                const geometry = loader.parse(ev.target.result);
                 
                 if(mesh) { transform.detach(); scene.remove(mesh); }
                 
-                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6, specular: 0x111111, shininess: 30 }));
+                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 30 }));
                 geometry.center();
                 scene.add(mesh);
                 transform.attach(mesh);
                 
-                // Exibe o container antes de calcular a câmera
                 document.getElementById('viewer-container').classList.remove('hidden');
                 document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
 
                 setTimeout(() => {
-                    // Redimensiona para capturar o tamanho real da div agora visível
                     const w = viewerDiv.clientWidth;
                     const h = viewerDiv.clientHeight;
                     renderer.setSize(w, h);
@@ -156,19 +146,17 @@
                     const size = new THREE.Vector3();
                     box.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                    camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
                     camera.lookAt(0, 0, 0);
                     orbit.target.set(0, 0, 0);
                     orbit.update();
 
                     currentVol = calculateVolume(geometry) / 1000;
                     updatePrice();
-                }, 60);
+                }, 100);
             };
             reader.readAsArrayBuffer(file);
-        }
-
-        document.getElementById('fileInput').onchange = (e) => handleFile(e.target.files[0]);
+        };
 
         function calculateVolume(geo) {
             let vol = 0;
@@ -198,28 +186,29 @@
             for(let i = 0; i < normals.length; i += 9) {
                 worldNormal.set(normals[i], normals[i+1], normals[i+2]);
                 worldNormal.applyMatrix3(normalMatrix).normalize();
-                if(worldNormal.y < -0.75) areaSuporte++;
+                if(worldNormal.y < -0.8) areaSuporte++;
             }
 
             const fatorSuporte = areaSuporte > 0 ? 1.20 : 1.0;
-            const pesoEstimado = (realVol * 1.24 * infill) * fatorSuporte; // 1.24g/cm3 densidade média
-            const precoFinal = (pesoEstimado * custoFilamento * 1.4) + 2.00;
+            const peso = (realVol * 1.25 * infill) * fatorSuporte;
+            const precoFinal = (peso * custoFilamento * 1.45) + 3.00;
 
             const box = new THREE.Box3().setFromObject(mesh);
             const size = new THREE.Vector3(); 
             box.getSize(size);
             
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-            
-            // Correção para 2 casas decimais fixa
-            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2 
-            });
+            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
         document.getElementById('drop-zone').onclick = () => document.getElementById('fileInput').click();
+        
+        function sendWA() {
+            const total = document.getElementById('total').innerText;
+            const text = window.encodeURIComponent(`Olá! Fiz um orçamento 3D:\nValor: ${total}\n\nEnvio o arquivo para análise.`);
+            window.open(`https://wa.me/55XXXXXXXXXXX?text=${text}`);
+        }
     </script>
 </body>
 </html>
