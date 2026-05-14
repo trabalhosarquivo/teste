@@ -216,35 +216,43 @@
         function updatePrice() {
     if(!mesh) return;
 
-    // --- SEU PAINEL DE CUSTOS (EDITE AQUI) ---
-    const custoFilamentoPorGrama = 0.11; // R$ 100/kg = 0.10 + 0.01 de margem de perda
-    const custoEnergiaHora = 0.60;       // Média de consumo de uma impressora caseira
-    const margemLucro = 1.35;            // Adiciona 35% de lucro sobre os custos brutos
-    const setupOperacional = 2.00;      // Valor fixo por peça (limpeza e fatiamento)
-    const divisorVelocidade = 7.0;       // Quanto maior, mais rápida a estimativa (menor o preço)[cite: 1]
-    // -----------------------------------------
+    // --- PAINEL DE CUSTOS ---
+    const custoFilamentoPorGrama = 0.11; 
+    const custoEnergiaHora = 0.60;       
+    const margemLucro = 1.35;            
+    const setupOperacional = 2.00;      
+    const divisorVelocidade = 7.0;       
+    // ----------------------------
 
     const scale = mesh.scale.x; 
     const realVol = currentVol * Math.pow(scale, 3);
-    
-    // 1. Cálculo de Peso (Densidade do PLA ~1.25g/cm³)
     const infill = parseFloat(document.getElementById('infill').value);
-    const peso = realVol * 1.25 * infill;[cite: 1]
     
-    // 2. Estimativa de Tempo
-    const tempoHoras = (realVol / divisorVelocidade);[cite: 1]
+    // --- LÓGICA DE SUPORTE (SIMULADA) ---
+    // Analisamos a geometria para ver o que "olha para baixo"
+    let areaSuporteEstimada = 0;
+    const faces = mesh.geometry.attributes.normal.array;
+    for(let i = 0; i < faces.length; i += 9) {
+        // Se a normal da face aponta para baixo (Z negativo)
+        if(faces[i+2] < -0.7) { 
+            areaSuporteEstimada += 1; 
+        }
+    }
+    // Se houver muita área para baixo, aumentamos o volume estimado em até 15%
+    const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;[cite: 1]
+    // ------------------------------------
+
+    const peso = (realVol * 1.25 * infill) * fatorSuporte;[cite: 1]
+    const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;[cite: 1]
     
-    // 3. Dimensões dinâmicas (atualizam se você escalar a peça)
     const box = new THREE.Box3().setFromObject(mesh);
     const size = new THREE.Vector3();
     box.getSize(size);
     document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;[cite: 1]
 
-    // 4. Cálculo Final
     const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);[cite: 1]
     const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;[cite: 1]
 
-    // Exibição com as duas casas decimais[cite: 1]
     document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
         minimumFractionDigits: 2, 
         maximumFractionDigits: 2 
