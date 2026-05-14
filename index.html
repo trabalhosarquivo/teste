@@ -159,47 +159,59 @@
         fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
         function handleFile(file) {
-            if(!file || !file.name.toLowerCase().endsWith('.stl')) return;
+    if(!file || !file.name.toLowerCase().endsWith('.stl')) return;
 
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                initThree();
-                const loader = new THREE.STLLoader();
-                const geometry = loader.parse(ev.target.result);
-                
-                if(mesh) {
-                    transform.detach();
-                    scene.remove(mesh);
-                }
-                
-                const material = new THREE.MeshPhongMaterial({ color: 0x3b82f6, specular: 0x444444, shininess: 30 });
-                mesh = new THREE.Mesh(geometry, material);
-                
-                geometry.computeBoundingBox();
-                const box = geometry.boundingBox;
-                geometry.center(); 
-                mesh.position.y = (box.max.y - box.min.y) / 2;
-
-                scene.add(mesh);
-                transform.attach(mesh);
-
-                const size = new THREE.Vector3();
-                box.getSize(size);
-                const maxDim = Math.max(size.x, size.y, size.z);
-                
-                camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
-                camera.lookAt(0,0,0);
-                orbit.target.set(0, maxDim/4, 0);
-                
-                currentVol = calculateVolume(geometry) / 1000;
-                
-                document.getElementById('viewer-container').classList.remove('hidden');
-                document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-                
-                updatePrice();
-            };
-            reader.readAsArrayBuffer(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        initThree();
+        const loader = new THREE.STLLoader();
+        const geometry = loader.parse(ev.target.result);
+        
+        if(mesh) {
+            transform.detach();
+            scene.remove(mesh);
         }
+        
+        const material = new THREE.MeshPhongMaterial({ color: 0x3b82f6, specular: 0x444444, shininess: 30 });
+        mesh = new THREE.Mesh(geometry, material);
+        
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        geometry.center(); 
+        mesh.position.y = (box.max.y - box.min.y) / 2;
+
+        scene.add(mesh);
+        transform.attach(mesh);
+
+        // --- AJUSTE PARA A PEÇA APARECER ---
+        document.getElementById('viewer-container').classList.remove('hidden');
+        document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
+
+        // Força o Three.js a ler o tamanho novo da DIV após ela deixar de ser 'hidden'
+        setTimeout(() => {
+            const width = viewerDiv.clientWidth;
+            const height = viewerDiv.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            
+            camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+            camera.lookAt(0,0,0);
+            orbit.target.set(0, 0, 0);
+            orbit.update();
+            
+            updatePrice();
+        }, 50); 
+        // -----------------------------------
+
+        currentVol = calculateVolume(geometry) / 1000;
+    };
+    reader.readAsArrayBuffer(file);
+}
 
         function calculateVolume(geo) {
             let vol = 0;
