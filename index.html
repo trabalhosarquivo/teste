@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçador Profissional 3D - Estável</title>
+    <title>Orçador Profissional 3D - Corrigido</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
@@ -25,7 +25,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
                 <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-blue-400 transition-all cursor-pointer">
-                    <p class="text-slate-500 font-bold text-xs uppercase">Clique ou arraste o arquivo STL</p>
+                    <p id="drop-text" class="text-slate-500 font-bold text-xs uppercase">Clique ou arraste o arquivo STL</p>
                     <input type="file" id="fileInput" accept=".stl" class="hidden">
                 </div>
                 
@@ -72,7 +72,6 @@
                     <div class="mt-8 pt-6 border-t border-slate-100">
                         <div class="flex justify-between items-center mb-4">
                             <span class="text-[10px] font-black text-slate-400 uppercase">Total Estimado:</span>
-                            <span class="text-[10px] font-bold text-slate-400 italic">Taxa setup inclusa</span>
                         </div>
                         <div class="bg-blue-600 p-5 rounded-2xl shadow-blue-200 shadow-2xl">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
@@ -88,21 +87,15 @@
     </div>
 
     <script>
-        const TAXA_SETUP = 2.00;
-        const CUSTO_HORA = 4.00;
-
         let scene, camera, renderer, orbit, transform, mesh;
         let currentVol = 0;
         const viewerDiv = document.getElementById('viewer');
 
         function initThree() {
             if (scene) return;
-            
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
-            
-            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 1, 100000);
-            
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
@@ -144,18 +137,36 @@
             if(renderer && scene && camera) renderer.render(scene, camera);
         }
 
-        document.getElementById('fileInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
+        // Lógica de Carregamento de Arquivo
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('drop-zone');
+
+        dropZone.onclick = () => fileInput.click();
+
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500');
+        };
+
+        dropZone.ondragleave = () => dropZone.classList.remove('border-blue-500');
+
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+            handleFile(e.dataTransfer.files[0]);
+        };
+
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function handleFile(file) {
+            if(!file || !file.name.toLowerCase().endsWith('.stl')) return;
 
             const reader = new FileReader();
             reader.onload = (ev) => {
                 initThree();
-                
                 const loader = new THREE.STLLoader();
                 const geometry = loader.parse(ev.target.result);
                 
-                // Limpeza Total
                 if(mesh) {
                     transform.detach();
                     scene.remove(mesh);
@@ -166,13 +177,8 @@
                 
                 geometry.computeBoundingBox();
                 const box = geometry.boundingBox;
-                const center = new THREE.Vector3();
-                box.getCenter(center);
-                
-                // Resetar posição da malha
-                mesh.position.set(0, 0, 0);
-                geometry.center(); // Centraliza a geometria no 0,0,0
-                mesh.position.y = (box.max.y - box.min.y) / 2; // Sobe para ficar no grid
+                geometry.center(); 
+                mesh.position.y = (box.max.y - box.min.y) / 2;
 
                 scene.add(mesh);
                 transform.attach(mesh);
@@ -181,25 +187,19 @@
                 box.getSize(size);
                 const maxDim = Math.max(size.x, size.y, size.z);
                 
-                // Posicionamento de Câmera Inteligente
-                camera.position.set(maxDim * 2.5, maxDim * 2.5, maxDim * 2.5);
+                camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
                 camera.lookAt(0,0,0);
-                orbit.target.set(0, maxDim/2, 0);
+                orbit.target.set(0, maxDim/4, 0);
                 
                 currentVol = calculateVolume(geometry) / 1000;
                 
                 document.getElementById('viewer-container').classList.remove('hidden');
                 document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
                 
-                // Garantir redimensionamento
-                renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
-                camera.aspect = viewerDiv.clientWidth / viewerDiv.clientHeight;
-                camera.updateProjectionMatrix();
-
                 updatePrice();
             };
             reader.readAsArrayBuffer(file);
-        };
+        }
 
         function calculateVolume(geo) {
             let vol = 0;
@@ -214,50 +214,42 @@
         }
 
         function updatePrice() {
-    if(!mesh) return;
+            if(!mesh) return;
 
-    // --- PAINEL DE CUSTOS ---
-    const custoFilamentoPorGrama = 0.11; 
-    const custoEnergiaHora = 0.60;       
-    const margemLucro = 1.35;            
-    const setupOperacional = 2.00;      
-    const divisorVelocidade = 7.0;       
-    // ----------------------------
+            const materialSelect = document.getElementById('material');
+            const custoFilamentoPorGrama = parseFloat(materialSelect.value); 
+            const custoEnergiaHora = 0.60;       
+            const margemLucro = 1.35;            
+            const setupOperacional = 2.00;      
+            const divisorVelocidade = 7.0;       
 
-    const scale = mesh.scale.x; 
-    const realVol = currentVol * Math.pow(scale, 3);
-    const infill = parseFloat(document.getElementById('infill').value);
-    
-    // --- LÓGICA DE SUPORTE (SIMULADA) ---
-    // Analisamos a geometria para ver o que "olha para baixo"
-    let areaSuporteEstimada = 0;
-    const faces = mesh.geometry.attributes.normal.array;
-    for(let i = 0; i < faces.length; i += 9) {
-        // Se a normal da face aponta para baixo (Z negativo)
-        if(faces[i+2] < -0.7) { 
-            areaSuporteEstimada += 1; 
+            const scale = mesh.scale.x; 
+            const realVol = currentVol * Math.pow(scale, 3);
+            const infill = parseFloat(document.getElementById('infill').value);
+            
+            let areaSuporteEstimada = 0;
+            const normals = mesh.geometry.attributes.normal.array;
+            for(let i = 0; i < normals.length; i += 9) {
+                if(normals[i+2] < -0.7) { areaSuporteEstimada += 1; }
+            }
+            const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;
+
+            const peso = (realVol * 1.25 * infill) * fatorSuporte;
+            const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;
+            
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+
+            const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);
+            const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;
+
+            document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
         }
-    }
-    // Se houver muita área para baixo, aumentamos o volume estimado em até 15%
-    const fatorSuporte = areaSuporteEstimada > 0 ? 1.15 : 1.0;[cite: 1]
-    // ------------------------------------
-
-    const peso = (realVol * 1.25 * infill) * fatorSuporte;[cite: 1]
-    const tempoHoras = (realVol / divisorVelocidade) * fatorSuporte;[cite: 1]
-    
-    const box = new THREE.Box3().setFromObject(mesh);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;[cite: 1]
-
-    const custoTotalInsumos = (peso * custoFilamentoPorGrama) + (tempoHoras * custoEnergiaHora);[cite: 1]
-    const precoFinal = (custoTotalInsumos * margemLucro) + setupOperacional;[cite: 1]
-
-    document.getElementById('total').innerText = "R$ " + precoFinal.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-    });[cite: 1]
-}
 
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
 
@@ -267,8 +259,6 @@
             const text = window.encodeURIComponent(`Olá! Orçamento 3D:\n📏 Medidas: ${dims} mm\n💰 Valor: ${total}\n\nEnvio o arquivo para sua análise.`);
             window.open(`https://wa.me/55XXXXXXXXXXX?text=${text}`);
         }
-        
-        document.getElementById('drop-zone').onclick = () => document.getElementById('fileInput').click();
     </script>
 </body>
 </html>
