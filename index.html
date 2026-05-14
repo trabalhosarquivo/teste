@@ -8,35 +8,36 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #viewer canvas { width: 100% !important; height: 100% !important; border-radius: 0.75rem; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="max-w-6xl mx-auto py-10 px-4">
         <h1 class="text-3xl font-bold text-center mb-10 text-gray-800 border-b pb-4">Painel de Orçamento 3D</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Coluna 1: Upload e Preview -->
             <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div id="drop-zone" class="border-2 border-dashed border-blue-200 rounded-xl p-8 text-center hover:bg-blue-50 transition-all cursor-pointer">
                     <p class="text-blue-600 font-medium">Arraste seu arquivo STL aqui ou clique para selecionar</p>
                     <input type="file" id="fileInput" accept=".stl" class="hidden">
                 </div>
                 
-                <div id="viewer-container" class="mt-6 relative h-[400px] bg-slate-900 rounded-xl overflow-hidden hidden">
+                <div id="viewer-container" class="mt-6 relative h-[450px] bg-slate-900 rounded-xl overflow-hidden hidden">
                     <div id="viewer" class="w-full h-full"></div>
-                    <div class="absolute bottom-4 left-4 bg-black/50 text-white p-2 rounded text-xs">
-                        Dimensões: <span id="dims">0 x 0 x 0</span> mm
+                    <div class="absolute bottom-4 left-4 bg-black/60 text-white p-3 rounded-lg text-xs backdrop-blur-sm">
+                        <p class="font-bold border-b border-white/20 mb-1 pb-1">Dimensões Reais:</p>
+                        <span id="dims" class="text-blue-300 italic">0 x 0 x 0</span> mm
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna 2: Configurações e Preço -->
             <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-                <h2 class="text-xl font-bold mb-6 text-gray-700">Configurações</h2>
-                
-                <div id="controls" class="space-y-4 opacity-50 pointer-events-none">
+                <h2 class="text-xl font-bold mb-6 text-gray-700 font-mono">CONFIGURAÇÕES</h2>
+                <div id="controls" class="space-y-4 opacity-50 pointer-events-none transition-opacity">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Material</label>
-                        <select id="material" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Material</label>
+                        <select id="material" class="w-full border-2 border-gray-100 rounded-lg p-2.5 focus:border-blue-400 outline-none transition-all">
                             <option value="0.15">PLA - Uso Geral (R$ 0,15/g)</option>
                             <option value="0.22">PETG - Resistente (R$ 0,22/g)</option>
                             <option value="0.35">ABS - Técnico (R$ 0,35/g)</option>
@@ -44,36 +45,36 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Preenchimento (Infill)</label>
-                        <select id="infill" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Preenchimento (Infill)</label>
+                        <select id="infill" class="w-full border-2 border-gray-100 rounded-lg p-2.5 focus:border-blue-400 outline-none">
                             <option value="0.15">15% (Decorativo)</option>
                             <option value="0.40">40% (Semi-Estrutural)</option>
-                            <option value="0.80">80% (Funcional/Pesado)</option>
+                            <option value="1.00">100% (Sólido)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Qualidade de Impressão</label>
-                        <select id="quality" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Resolução de Camada</label>
+                        <select id="quality" class="w-full border-2 border-gray-100 rounded-lg p-2.5 focus:border-blue-400 outline-none">
                             <option value="1">Normal (0.2mm)</option>
-                            <option value="1.5">Fina (0.12mm) - Mais lento</option>
-                            <option value="0.8">Rascunho (0.28mm) - Mais rápido</option>
+                            <option value="1.5">Alta Definição (0.12mm)</option>
+                            <option value="0.7">Rascunho (0.3mm)</option>
                         </select>
                     </div>
 
-                    <div class="pt-6 border-t mt-6">
-                        <div class="flex justify-between text-sm text-gray-500 mb-2">
-                            <span>Setup de Máquina:</span>
+                    <div class="pt-6 border-t border-dashed mt-6">
+                        <div class="flex justify-between text-xs text-gray-400 font-bold mb-3">
+                            <span>TAXA DE SETUP:</span>
                             <span>R$ 15,00</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-gray-700">Valor Total:</span>
-                            <span id="total" class="text-3xl font-black text-green-600">R$ 0,00</span>
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <span class="block text-center text-xs font-bold text-gray-400 mb-1">ORÇAMENTO ESTIMADO</span>
+                            <span id="total" class="block text-center text-4xl font-black text-green-600">R$ 0,00</span>
                         </div>
                     </div>
 
-                    <button onclick="sendWA()" class="w-full bg-green-500 text-white font-bold py-4 rounded-xl mt-6 hover:bg-green-600 transition-colors shadow-lg flex items-center justify-center gap-2">
-                        Enviar para WhatsApp
+                    <button onclick="sendWA()" class="w-full bg-green-500 text-white font-black py-4 rounded-xl mt-6 hover:bg-green-600 transition-all shadow-lg hover:shadow-green-200 flex items-center justify-center gap-2">
+                        FECHAR PEDIDO VIA WHATSAPP
                     </button>
                 </div>
             </div>
@@ -81,61 +82,88 @@
     </div>
 
     <script>
-        // Lógica de cálculo inspirada em bureaus profissionais
         const TAXA_SETUP = 15.00;
-        const CUSTO_HORA = 8.00; // Valor médio da hora de impressão
+        const CUSTO_HORA = 10.00; 
 
         let scene, camera, renderer, controls, mesh;
         let currentVol = 0;
         const viewerContainer = document.getElementById('viewer-container');
+        const viewerDiv = document.getElementById('viewer');
 
-        // Inicialização do Visualizador (Igual à do passo anterior)
         function initThree() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, viewerContainer.clientWidth / viewerContainer.clientHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(viewerContainer.clientWidth, viewerContainer.clientHeight);
-            document.getElementById('viewer').appendChild(renderer.domElement);
+            scene.background = new THREE.Color(0x0f172a); 
             
-            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 5000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+            viewerDiv.appendChild(renderer.domElement);
+            
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambient);
-            const directional = new THREE.DirectionalLight(0xffffff, 0.5);
-            directional.position.set(10, 10, 10);
-            scene.add(directional);
+            const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+            sun.position.set(100, 100, 100);
+            scene.add(sun);
             
             controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
             animate();
         }
 
-        function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
+        function animate() { 
+            requestAnimationFrame(animate); 
+            if(controls) controls.update();
+            renderer.render(scene, camera); 
+        }
 
         document.getElementById('fileInput').onchange = (e) => {
             const file = e.target.files[0];
+            if(!file) return;
+
             const reader = new FileReader();
             reader.onload = (ev) => {
+                if(!scene) initThree();
+                
                 const loader = new THREE.STLLoader();
                 const geometry = loader.parse(ev.target.result);
+                
                 if(mesh) scene.remove(mesh);
-                mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({color: 0x3b82f6}));
+                
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x60a5fa,
+                    specular: 0x111111,
+                    shininess: 100
+                });
+                
+                mesh = new THREE.Mesh(geometry, material);
                 
                 geometry.computeBoundingBox();
                 const box = geometry.boundingBox;
                 const size = new THREE.Vector3();
                 box.getSize(size);
+                
                 document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
                 
-                // Centralização
                 const center = new THREE.Vector3();
                 box.getCenter(center);
                 mesh.position.sub(center);
                 scene.add(mesh);
-                camera.position.set(size.x, size.y, size.z * 2);
+
+                const maxDim = Math.max(size.x, size.y, size.z);
+                camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                camera.lookAt(0,0,0);
                 
-                // Volume mm3 -> cm3
                 currentVol = calculateVolume(geometry) / 1000;
                 
-                document.getElementById('viewer-container').classList.remove('hidden');
+                viewerContainer.classList.remove('hidden');
                 document.getElementById('controls').classList.remove('opacity-50', 'pointer-events-none');
+                
+                // Força o redimensionamento do motor 3D
+                renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+                camera.aspect = viewerDiv.clientWidth / viewerDiv.clientHeight;
+                camera.updateProjectionMatrix();
+                
                 updatePrice();
             };
             reader.readAsArrayBuffer(file);
@@ -154,31 +182,27 @@
         }
 
         function updatePrice() {
-            const materialCusto = parseFloat(document.getElementById('material').value);
-            const infillPerc = parseFloat(document.getElementById('infill').value);
-            const qualityMult = parseFloat(document.getElementById('quality').value);
+            if(currentVol === 0) return;
+            const matCusto = parseFloat(document.getElementById('material').value);
+            const infill = parseFloat(document.getElementById('infill').value);
+            const qual = parseFloat(document.getElementById('quality').value);
             
-            // Peso estimado (Densidade média 1.25g/cm3)
-            const peso = currentVol * 1.25 * infillPerc;
+            const peso = currentVol * 1.25 * infill;
+            const tempo = (currentVol / 4) * qual; 
             
-            // Tempo estimado simplificado (Volume + Fator de Qualidade)
-            const tempoEstimado = (currentVol / 5) * qualityMult;
-            
-            const total = TAXA_SETUP + (peso * materialCusto) + (tempoEstimado * CUSTO_HORA);
-            document.getElementById('total').innerText = "R$ " + total.toFixed(2).replace('.',',');
+            const total = TAXA_SETUP + (peso * matCusto) + (tempo * CUSTO_HORA);
+            document.getElementById('total').innerText = "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
         }
 
-        // Atualizar preço quando mudar qualquer opção
         document.querySelectorAll('select').forEach(s => s.onchange = updatePrice);
 
         function sendWA() {
             const total = document.getElementById('total').innerText;
             const dims = document.getElementById('dims').innerText;
-            const text = window.encodeURIComponent(`Olá! Fiz um orçamento de impressão 3D:\n- Dimensões: ${dims} mm\n- Valor: ${total}\n\nEstou enviando o arquivo STL para análise.`);
-            window.open(`https://wa.me/5511996161878?text=${text}`); // SUBSTITUA PELO SEU NÚMERO
+            const text = window.encodeURIComponent(`Olá! Orçamento de impressão 3D:\n📏 Medidas: ${dims} mm\n💰 Valor: ${total}\n\nEstou enviando o arquivo STL.`);
+            window.open(`https://wa.me/55XXXXXXXXXXX?text=${text}`); 
         }
-
-        initThree();
+        
         document.getElementById('drop-zone').onclick = () => document.getElementById('fileInput').click();
     </script>
 </body>
