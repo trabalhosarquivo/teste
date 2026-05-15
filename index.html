@@ -348,7 +348,7 @@
             return Math.abs(vol);
         }
 
-        function updatePrice() {
+       function updatePrice() {
             if(!mesh) return;
             const custoFilamento = parseFloat(document.getElementById('material').value);
             const scale = mesh.scale.x; 
@@ -356,17 +356,25 @@
             const infill = parseFloat(document.getElementById('infill').value);
             const resValue = parseFloat(document.getElementById('layerHeight').value);
             
+            // Pega as dimensões reais da peça no espaço (pós-giro)
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3(); 
+            box.getSize(size);
+
+            // --- LÓGICA DE PREÇO POR ORIENTAÇÃO ---
+            // Calculamos um fator baseado na altura (Z). 
+            // Peças mais altas ou em ângulos difíceis aumentam o custo de tempo/risco.
+            const fatorAltura = 1 + (size.y / 500); // Ex: cada 50mm de altura add 10%
+            
             let multRes = 1.0;
             if(resValue === 0.2) multRes = 1.2;
             if(resValue === 0.1) multRes = 1.5;
 
             const peso = (realVol * 1.25 * infill) * 1.1; 
-            const precoFinal = ((peso * custoFilamento) * multRes * 1.45) + 3.00;
-
-            const box = new THREE.Box3().setFromObject(mesh);
-            const size = new THREE.Vector3(); 
-            box.getSize(size);
             
+            // O preço agora multiplica pelo fator de orientação (fatorAltura)
+            const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 3.00;
+
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
             document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
         }
