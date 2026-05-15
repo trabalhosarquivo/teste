@@ -255,7 +255,7 @@
         function handleFile(file) {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                initThree(); // Garante que a cena existe
+                initThree(); 
                 const loader = new THREE.STLLoader();
                 const geometry = loader.parse(ev.target.result);
                 geometry.computeVertexNormals();
@@ -281,6 +281,16 @@
                 document.getElementById('status-text').innerText = "Arquivo: " + file.name;
                 
                 currentVol = calculateVolume(geometry) / 1000;
+                
+                // Aplicar parâmetros da URL se existirem
+                const params = new URLSearchParams(window.location.search);
+                if(params.has('s')) document.getElementById('input-scale').value = params.get('s');
+                if(params.has('rx')) document.getElementById('input-rotX').value = params.get('rx');
+                if(params.has('ry')) document.getElementById('input-rotY').value = params.get('ry');
+                if(params.has('rz')) document.getElementById('input-rotZ').value = params.get('rz');
+                
+                if(params.has('s')) manualTransform();
+                
                 autoFocus();
                 keepOnGround();
                 updatePrice();
@@ -346,8 +356,21 @@
         function sendWA() {
             const total = document.getElementById('total').innerText;
             const dims = document.getElementById('dims').innerText;
+            const esc = document.getElementById('input-scale').value;
+            const rx = document.getElementById('input-rotX').value;
+            const ry = document.getElementById('input-rotY').value;
+            const rz = document.getElementById('input-rotZ').value;
             const printer = document.getElementById('printerSelect').options[document.getElementById('printerSelect').selectedIndex].text;
-            let msg = `*Novo Orçamento 3D* 🚀\n\n*Máquina:* ${printer}\n*Medidas:* ${dims} mm\n*Valor:* ${total}`;
+            
+            const baseUrl = window.location.href.split('?')[0];
+            const configLink = `${baseUrl}?s=${esc}&rx=${rx}&ry=${ry}&rz=${rz}`;
+
+            let msg = `*Novo Orçamento 3D* 🚀\n\n`;
+            msg += `*Máquina:* ${printer}\n`;
+            msg += `*Medidas:* ${dims} mm\n`;
+            msg += `*Valor:* ${total}\n\n`;
+            msg += `*Link de Configuração:* ${configLink}`;
+
             window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
         }
     </script>
