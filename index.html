@@ -12,7 +12,6 @@
     <style>
         #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
         input[type=number]::-webkit-inner-spin-button { opacity: 1; }
-        /* Estilo para o alerta de erro */
         .limit-exceeded { background-color: #ef4444 !important; }
     </style>
 </head>
@@ -56,7 +55,6 @@
                         </select>
 
                         <label class="text-[10px] font-black text-slate-500 uppercase">Configurações de Impressão</label>
-                        
                         <div class="flex gap-2 mb-4">
                             <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
                             <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
@@ -83,35 +81,24 @@
 
                         <div class="mt-6 pt-4 border-t border-slate-100 space-y-4">
                             <label class="text-[10px] font-black text-slate-500 uppercase">Ajustes Técnicos</label>
-                            
                             <div class="flex items-center gap-3">
                                 <span class="text-[10px] font-bold text-slate-400 w-16">ESCALA</span>
                                 <input type="number" id="input-scale" step="0.01" value="1.00" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-blue-600 outline-none">
                             </div>
-
                             <div class="grid grid-cols-3 gap-2">
-                                <div class="space-y-1">
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar X°</span>
-                                    <input type="number" id="input-rotX" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar Y°</span>
-                                    <input type="number" id="input-rotY" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar Z°</span>
-                                    <input type="number" id="input-rotZ" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
-                                </div>
+                                <input type="number" id="input-rotX" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="X°">
+                                <input type="number" id="input-rotY" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="Y°">
+                                <input type="number" id="input-rotZ" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="Z°">
                             </div>
                         </div>
                     </div>
 
-                    <button onclick="resetTransform()" class="w-full mt-4 bg-slate-100 text-slate-500 py-2 rounded-lg text-[10px] font-black border border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-all uppercase tracking-widest">
+                    <button onclick="resetTransform()" class="w-full mt-4 bg-slate-100 text-slate-500 py-2 rounded-lg text-[10px] font-black border border-slate-200 hover:bg-slate-200 transition-all uppercase">
                         Resetar Posição Original
                     </button>
 
                     <div class="mt-4 pt-6 border-t border-slate-100">
-                        <div id="price-container" class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200 transition-colors duration-300">
+                        <div id="price-container" class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200 transition-colors">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
                         </div>
                     </div>
@@ -142,8 +129,7 @@
             light.position.set(200, 200, 200);
             scene.add(light);
             
-            const grid = new THREE.GridHelper(500, 50, 0x334155, 0x1e293b);
-            scene.add(grid);
+            scene.add(new THREE.GridHelper(500, 50, 0x334155, 0x1e293b));
 
             orbit = new THREE.OrbitControls(camera, renderer.domElement);
             transform = new THREE.TransformControls(camera, renderer.domElement);
@@ -154,7 +140,6 @@
                     document.getElementById('input-rotX').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.x));
                     document.getElementById('input-rotY').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.y));
                     document.getElementById('input-rotZ').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.z));
-                    
                     keepOnGround();
                     updatePrice();
                 }
@@ -163,22 +148,208 @@
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
             
-            updatePrinterVolume(); // Inicializa a caixa da impressora
+            updatePrinterVolume();
 
             window.addEventListener('resize', onWindowResize);
-            window.addEventListener('keydown', (e) => {
-                switch(e.key.toLowerCase()) {
-                    case 'w': setMode('translate'); break;
-                    case 'e': setMode('rotate'); break;
-                    case 'r': setMode('scale'); break;
-                }
-            });
-
             animate();
         }
 
-        // --- FUNÇÃO PARA ATUALIZAR O VOLUME DA IMPRESSORA SELECIONADA ---
         function updatePrinterVolume() {
+            if (!scene) return;
             if (printerVolume) scene.remove(printerVolume);
+            const dims = document.getElementById('printerSelect').value.split(',').map(Number);
+            const w = dims[0], h = dims[1], d = dims[2];
+            const geometry = new THREE.BoxGeometry(w, h, d);
+            const edges = new THREE.EdgesGeometry(geometry);
+            printerVolume = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 }));
+            printerVolume.position.y = h / 2;
+            scene.add(printerVolume);
+            if(mesh) updatePrice();
+        }
+
+        function resetTransform() {
+            if(!mesh) return;
+            mesh.scale.set(1, 1, 1);
+            mesh.rotation.set(0, 0, 0);
+            mesh.position.set(0, 0, 0);
+            document.getElementById('input-scale').value = "1.00";
+            document.getElementById('input-rotX').value = "0";
+            document.getElementById('input-rotY').value = "0";
+            document.getElementById('input-rotZ').value = "0";
+            keepOnGround();
+            updatePrice();
+            autoFocus();
+        }
+
+        function autoFocus() {
+            if(!mesh) return;
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 3;
+            camera.position.set(cameraZ, cameraZ, cameraZ);
+            camera.lookAt(0, size.y/2, 0);
+            orbit.target.set(0, size.y/2, 0);
+            orbit.update();
+        }
+
+        function onWindowResize() {
+            if(!camera || !renderer) return;
+            camera.aspect = viewerDiv.clientWidth / viewerDiv.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+        }
+
+        function manualTransform() {
+            if (!mesh) return;
+            const s = parseFloat(document.getElementById('input-scale').value) || 0.01;
+            mesh.scale.set(s, s, s);
+            mesh.rotation.set(
+                THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotX').value) || 0),
+                THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotY').value) || 0),
+                THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotZ').value) || 0)
+            );
+            keepOnGround();
+            updatePrice();
+        }
+
+        function keepOnGround() {
+            if(!mesh) return;
+            mesh.updateMatrixWorld();
+            const box = new THREE.Box3().setFromObject(mesh);
+            mesh.position.y -= box.min.y;
+        }
+
+        function setMode(m) { if(transform) transform.setMode(m); }
+        function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
+
+        function changeColor(hex) {
+            if (mesh && mesh.material.uniforms) mesh.material.uniforms.color.value.set(hex);
+        }
+
+        function updateResolution() {
+            if(mesh && mesh.material.uniforms) mesh.material.uniforms.layerHeight.value = parseFloat(document.getElementById('layerHeight').value);
+            updatePrice();
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('drop-zone');
+
+        fileInput.onchange = (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); };
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                if(eventName === 'dragover') dropZone.classList.add('border-blue-500', 'bg-blue-50');
+                if(eventName === 'dragleave' || eventName === 'drop') dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.toLowerCase().endsWith('.stl')) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                initThree(); // Garante que a cena existe
+                const loader = new THREE.STLLoader();
+                const geometry = loader.parse(ev.target.result);
+                geometry.computeVertexNormals();
+                geometry.center();
+
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        color: { value: new THREE.Color(0x3b82f6) },
+                        layerHeight: { value: parseFloat(document.getElementById('layerHeight').value) },
+                        lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
+                    },
+                    vertexShader: `varying vec3 vWorldPosition; varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWorldPosition = wp.xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                    fragmentShader: `varying vec3 vWorldPosition; varying vec3 vNormal; uniform vec3 color; uniform float layerHeight; uniform vec3 lightDirection; void main() { float dotNL = max(dot(vNormal, lightDirection), 0.0); float intensity = 0.4 + 0.6 * dotNL; float level = fract(vWorldPosition.y / layerHeight); float edge = smoothstep(0.0, 0.15, level) * smoothstep(1.0, 0.85, level); vec3 layerColor = color * (0.8 + 0.2 * edge); gl_FragColor = vec4(layerColor * intensity, 1.0); }`
+                });
+
+                if(mesh) { transform.detach(); scene.remove(mesh); }
+                mesh = new THREE.Mesh(geometry, mat);
+                scene.add(mesh);
+                transform.attach(mesh);
+                
+                document.getElementById('viewer-container').classList.remove('hidden');
+                document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
+                document.getElementById('status-text').innerText = "Arquivo: " + file.name;
+                
+                currentVol = calculateVolume(geometry) / 1000;
+                autoFocus();
+                keepOnGround();
+                updatePrice();
+                onWindowResize();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function calculateVolume(geo) {
+            let vol = 0;
+            const pos = geo.attributes.position.array;
+            for(let i=0; i<pos.length; i+=9) {
+                const v1 = new THREE.Vector3(pos[i], pos[i+1], pos[i+2]);
+                const v2 = new THREE.Vector3(pos[i+3], pos[i+4], pos[i+5]);
+                const v3 = new THREE.Vector3(pos[i+6], pos[i+7], pos[i+8]);
+                vol += v1.dot(v2.cross(v3)) / 6;
+            }
+            return Math.abs(vol);
+        }
+
+        function updatePrice() {
+            if(!mesh) return;
+            const custoFilamento = parseFloat(document.getElementById('material').value);
+            const scale = mesh.scale.x; 
+            const realVol = currentVol * Math.pow(scale, 3);
+            const infill = parseFloat(document.getElementById('infill').value);
+            const resValue = parseFloat(document.getElementById('layerHeight').value);
             
-            const dims = document.getElementById('printerSelect').value.split(',').map
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3(); 
+            box.getSize(size);
+
+            const printerDims = document.getElementById('printerSelect').value.split(',').map(Number);
+            const exceeds = size.x > printerDims[0] || size.y > printerDims[1] || size.z > printerDims[2];
+
+            const alertBox = document.getElementById('size-alert');
+            const priceContainer = document.getElementById('price-container');
+            const waButton = document.getElementById('wa-button');
+
+            if (exceeds) {
+                alertBox.classList.remove('hidden');
+                priceContainer.classList.add('limit-exceeded');
+                document.getElementById('total').innerText = "INDISPONÍVEL";
+                waButton.disabled = true;
+                waButton.classList.add('opacity-50', 'cursor-not-allowed');
+                if(printerVolume) printerVolume.material.color.setHex(0xef4444);
+            } else {
+                alertBox.classList.add('hidden');
+                priceContainer.classList.remove('limit-exceeded');
+                waButton.disabled = false;
+                waButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                if(printerVolume) printerVolume.material.color.setHex(0x3b82f6);
+
+                const fatorAltura = 1 + (size.y / 500);
+                let multRes = (resValue === 0.2) ? 1.2 : (resValue === 0.1 ? 1.5 : 1.0);
+                const peso = (realVol * 1.25 * infill) * 1.1; 
+                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 3.00;
+                document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
+            }
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+        }
+
+        function sendWA() {
+            const total = document.getElementById('total').innerText;
+            const dims = document.getElementById('dims').innerText;
+            const printer = document.getElementById('printerSelect').options[document.getElementById('printerSelect').selectedIndex].text;
+            let msg = `*Novo Orçamento 3D* 🚀\n\n*Máquina:* ${printer}\n*Medidas:* ${dims} mm\n*Valor:* ${total}`;
+            window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
+        }
+    </script>
+</body>
+</html>
