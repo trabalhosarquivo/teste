@@ -116,15 +116,15 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0f172a);
             
-            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 5000);
+            camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             viewerDiv.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const light = new THREE.PointLight(0xffffff, 0.8);
-            light.position.set(100, 100, 100);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const light = new THREE.DirectionalLight(0xffffff, 0.6);
+            light.position.set(200, 200, 200);
             scene.add(light);
             
             const grid = new THREE.GridHelper(500, 50, 0x334155, 0x1e293b);
@@ -135,7 +135,6 @@
 
             transform.addEventListener('change', () => {
                 if (mesh) {
-                    // Sincroniza os inputs numéricos com o movimento do mouse
                     document.getElementById('input-scale').value = mesh.scale.x.toFixed(2);
                     document.getElementById('input-rotX').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.x));
                     document.getElementById('input-rotY').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.y));
@@ -145,9 +144,11 @@
                     updatePrice();
                 }
             });
+            
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
             scene.add(transform);
             
+            window.addEventListener('resize', onWindowResize);
             window.addEventListener('keydown', (e) => {
                 switch(e.key.toLowerCase()) {
                     case 'w': setMode('translate'); break;
@@ -157,6 +158,12 @@
             });
 
             animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = viewerDiv.clientWidth / viewerDiv.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
         }
 
         function manualTransform() {
@@ -223,7 +230,7 @@
                     const loader = new THREE.STLLoader();
                     const geometry = loader.parse(ev.target.result);
                     geometry.computeVertexNormals();
-                    geometry.center();
+                    geometry.center(); // Centraliza a geometria no 0,0,0
 
                     const materialImpressao = new THREE.ShaderMaterial({
                         uniforms: {
@@ -266,17 +273,25 @@
                     document.getElementById('viewer-container').classList.remove('hidden');
                     document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
                     document.getElementById('status-text').innerText = "Arquivo: " + file.name;
+                    
                     currentVol = calculateVolume(geometry) / 1000;
 
-                    setTimeout(() => {
-                        const w = viewerDiv.clientWidth;
-                        const h = viewerDiv.clientHeight;
-                        renderer.setSize(w, h);
-                        camera.aspect = w / h;
-                        camera.updateProjectionMatrix();
-                        keepOnGround();
-                        updatePrice();
-                    }, 100);
+                    // Ajuste de Câmera e Enquadramento
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                    cameraZ *= 2.5; // Margem extra
+
+                    camera.position.set(cameraZ, cameraZ, cameraZ);
+                    camera.lookAt(0, 0, 0);
+                    orbit.target.set(0, 0, 0);
+                    orbit.update();
+
+                    keepOnGround();
+                    updatePrice();
+                    onWindowResize();
                 } catch (err) { console.error(err); }
             };
             reader.readAsArrayBuffer(file);
@@ -306,7 +321,7 @@
             if(resValue === 0.2) multRes = 1.2;
             if(resValue === 0.1) multRes = 1.5;
 
-            const peso = (realVol * 1.25 * infill) * 1.1; // +10% margem erro suporte/perda
+            const peso = (realVol * 1.25 * infill) * 1.1; 
             const precoFinal = ((peso * custoFilamento) * multRes * 1.45) + 3.00;
 
             const box = new THREE.Box3().setFromObject(mesh);
