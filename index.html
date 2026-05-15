@@ -11,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
+        input[type=number]::-webkit-inner-spin-button { opacity: 1; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans">
@@ -43,35 +44,55 @@
             <div class="space-y-6">
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
                     <div class="space-y-4">
-                        <label class="text-[10px] font-black text-slate-500 uppercase">Cor do Filamento</label>
-                        <div class="flex gap-2 mb-6">
-                            <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Azul"></button>
-                            <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all" title="Preto"></button>
-                            <button onclick="changeColor('#ffffff')" class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 shadow-md hover:scale-110 transition-all" title="Branco"></button>
-                            <button onclick="changeColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Vermelho"></button>
-                            <button onclick="changeColor('#eab308')" class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white shadow-md hover:scale-110 transition-all" title="Amarelo"></button>
+                        <label class="text-[10px] font-black text-slate-500 uppercase">Configurações de Impressão</label>
+                        
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
+                            <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
+                            <button onclick="changeColor('#ffffff')" class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 shadow-md hover:scale-110 transition-all"></button>
+                            <button onclick="changeColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
                         </div>
 
-                        <label class="text-[10px] font-black text-slate-500 uppercase">Material</label>
                         <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.18">PLA - Pro (R$ 0,18/g)</option>
                             <option value="0.28">PETG - XT (R$ 0,28/g)</option>
                         </select>
                         
-                        <label class="text-[10px] font-black text-slate-500 uppercase">Preenchimento</label>
                         <select id="infill" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.15">15% - Leve</option>
                             <option value="0.45">45% - Resistente</option>
                             <option value="1.00">100% - Total</option>
                         </select>
 
-                        <!-- NOVA OPÇÃO DE RESOLUÇÃO -->
-                        <label class="text-[10px] font-black text-slate-500 uppercase">Resolução (Camada)</label>
                         <select id="layerHeight" onchange="updateResolution()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.3">0.3 mm (Rápido)</option>
                             <option value="0.2">0.2 mm (Normal)</option>
                             <option value="0.1">0.1 mm (Detalhamento)</option>
                         </select>
+
+                        <div class="mt-6 pt-4 border-t border-slate-100 space-y-4">
+                            <label class="text-[10px] font-black text-slate-500 uppercase">Ajustes Técnicos (Replicação)</label>
+                            
+                            <div class="flex items-center gap-3">
+                                <span class="text-[10px] font-bold text-slate-400 w-16">ESCALA</span>
+                                <input type="number" id="input-scale" step="0.01" value="1.00" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-blue-600 outline-none">
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="space-y-1">
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar X°</span>
+                                    <input type="number" id="input-rotX" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar Y°</span>
+                                    <input type="number" id="input-rotY" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase">Girar Z°</span>
+                                    <input type="number" id="input-rotZ" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-8 pt-6 border-t border-slate-100">
@@ -114,6 +135,12 @@
 
             transform.addEventListener('change', () => {
                 if (mesh) {
+                    // Sincroniza os inputs numéricos com o movimento do mouse
+                    document.getElementById('input-scale').value = mesh.scale.x.toFixed(2);
+                    document.getElementById('input-rotX').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.x));
+                    document.getElementById('input-rotY').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.y));
+                    document.getElementById('input-rotZ').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.z));
+                    
                     keepOnGround();
                     updatePrice();
                 }
@@ -130,6 +157,23 @@
             });
 
             animate();
+        }
+
+        function manualTransform() {
+            if (!mesh) return;
+            const s = parseFloat(document.getElementById('input-scale').value) || 0.01;
+            const rx = parseFloat(document.getElementById('input-rotX').value) || 0;
+            const ry = parseFloat(document.getElementById('input-rotY').value) || 0;
+            const rz = parseFloat(document.getElementById('input-rotZ').value) || 0;
+
+            mesh.scale.set(s, s, s);
+            mesh.rotation.set(
+                THREE.MathUtils.degToRad(rx),
+                THREE.MathUtils.degToRad(ry),
+                THREE.MathUtils.degToRad(rz)
+            );
+            keepOnGround();
+            updatePrice();
         }
 
         function keepOnGround() {
@@ -158,35 +202,18 @@
 
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('drop-zone');
-
         dropZone.onclick = () => fileInput.click();
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-blue-500', 'bg-blue-50'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-blue-500', 'bg-blue-50'), false);
+            dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
         });
 
         dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const file = dt.files[0];
-            if (file && file.name.toLowerCase().endsWith('.stl')) {
-                handleFile(file);
-            }
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.toLowerCase().endsWith('.stl')) handleFile(file);
         });
 
-        fileInput.onchange = (e) => {
-            if(e.target.files[0]) handleFile(e.target.files[0]);
-        };
+        fileInput.onchange = (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); };
 
         function handleFile(file) {
             const reader = new FileReader();
@@ -195,7 +222,6 @@
                     initThree();
                     const loader = new THREE.STLLoader();
                     const geometry = loader.parse(ev.target.result);
-                    
                     geometry.computeVertexNormals();
                     geometry.center();
 
@@ -233,7 +259,6 @@
                     });
 
                     if(mesh) { transform.detach(); scene.remove(mesh); }
-                    
                     mesh = new THREE.Mesh(geometry, materialImpressao);
                     scene.add(mesh);
                     transform.attach(mesh);
@@ -241,7 +266,6 @@
                     document.getElementById('viewer-container').classList.remove('hidden');
                     document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
                     document.getElementById('status-text').innerText = "Arquivo: " + file.name;
-
                     currentVol = calculateVolume(geometry) / 1000;
 
                     setTimeout(() => {
@@ -251,20 +275,9 @@
                         camera.aspect = w / h;
                         camera.updateProjectionMatrix();
                         keepOnGround();
-                        
-                        const box = new THREE.Box3().setFromObject(mesh);
-                        const size = new THREE.Vector3();
-                        box.getSize(size);
-                        const maxDim = Math.max(size.x, size.y, size.z);
-                        camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
-                        camera.lookAt(0, 0, 0);
-                        orbit.target.set(0, 0, 0);
-                        orbit.update();
                         updatePrice();
                     }, 100);
-                } catch (err) {
-                    console.error(err);
-                }
+                } catch (err) { console.error(err); }
             };
             reader.readAsArrayBuffer(file);
         }
@@ -282,43 +295,19 @@
         }
 
         function updatePrice() {
-            if(!mesh || !mesh.geometry.attributes.normal) return;
-
+            if(!mesh) return;
             const custoFilamento = parseFloat(document.getElementById('material').value);
             const scale = mesh.scale.x; 
             const realVol = currentVol * Math.pow(scale, 3);
             const infill = parseFloat(document.getElementById('infill').value);
-            
-            // Lógica de acréscimo por resolução
             const resValue = parseFloat(document.getElementById('layerHeight').value);
-            let multiplicadorResolucao = 1.0;
-            if(resValue === 0.2) multiplicadorResolucao = 1.2; // +20%
-            if(resValue === 0.1) multiplicadorResolucao = 1.5; // +50%
-
-            let volumeSuporteExtra = 0;
-            mesh.updateMatrixWorld(); 
             
-            const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-            const positions = mesh.geometry.attributes.position.array;
-            const normals = mesh.geometry.attributes.normal.array;
+            let multRes = 1.0;
+            if(resValue === 0.2) multRes = 1.2;
+            if(resValue === 0.1) multRes = 1.5;
 
-            for (let i = 0; i < positions.length; i += 9) {
-                const worldNormal = new THREE.Vector3(normals[i], normals[i+1], normals[i+2]);
-                worldNormal.applyMatrix3(normalMatrix).normalize();
-
-                if (worldNormal.y < -0.7) { 
-                    const vA = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]).applyMatrix4(mesh.matrixWorld);
-                    const vB = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]).applyMatrix4(mesh.matrixWorld);
-                    const vC = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]).applyMatrix4(mesh.matrixWorld);
-                    const areaTriangulo = new THREE.Triangle(vA, vB, vC).getArea();
-                    const alturaMedia = (vA.y + vB.y + vC.y) / 3;
-                    volumeSuporteExtra += (areaTriangulo * Math.max(0, alturaMedia)) * 0.15;
-                }
-            }
-
-            const volumeTotalComSuporte = realVol + (volumeSuporteExtra / 1000); 
-            const peso = volumeTotalComSuporte * 1.25 * infill;
-            const precoFinal = ((peso * custoFilamento) * multiplicadorResolucao * 1.45) + 3.00;
+            const peso = (realVol * 1.25 * infill) * 1.1; // +10% margem erro suporte/perda
+            const precoFinal = ((peso * custoFilamento) * multRes * 1.45) + 3.00;
 
             const box = new THREE.Box3().setFromObject(mesh);
             const size = new THREE.Vector3(); 
@@ -331,9 +320,21 @@
         function sendWA() {
             const total = document.getElementById('total').innerText;
             const dims = document.getElementById('dims').innerText;
+            const esc = document.getElementById('input-scale').value;
+            const rx = document.getElementById('input-rotX').value;
+            const ry = document.getElementById('input-rotY').value;
+            const rz = document.getElementById('input-rotZ').value;
             const res = document.getElementById('layerHeight').options[document.getElementById('layerHeight').selectedIndex].text;
-            const text = window.encodeURIComponent(`Olá! Fiz um orçamento no Orçador 3D:\n📏 Medidas: ${dims} mm\n✨ Resolução: ${res}\n💰 Valor Estimado: ${total}`);
-            window.open(`https://wa.me/5511996161878?text=${text}`);
+
+            let msg = `*Novo Orçamento 3D* 🚀\n\n`;
+            msg += `*Medidas Finais:* ${dims} mm\n`;
+            msg += `*Resolução:* ${res}\n\n`;
+            msg += `*DADOS TÉCNICOS:* \n`;
+            msg += `*Escala:* ${esc}x\n`;
+            msg += `*Rotação:* X:${rx}° Y:${ry}° Z:${rz}°\n\n`;
+            msg += `*Valor Estimado:* ${total}`;
+
+            window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
         }
     </script>
 </body>
