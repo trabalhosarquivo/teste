@@ -14,23 +14,18 @@
         input[type=number]::-webkit-inner-spin-button { opacity: 1; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900">
     <div class="max-w-6xl mx-auto py-8 px-4">
         <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h1 class="text-2xl font-black text-slate-800 uppercase">Orçador <span class="text-blue-600">3D</span></h1>
-            <div class="flex items-center gap-6">
-                <button onclick="resetTransform()" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-[10px] font-black border border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">
-                    Resetar Posição
-                </button>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">W: Mover | E: Girar | R: Escala</div>
-            </div>
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">W: Mover | E: Girar | R: Escala</div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-4">
-                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-all cursor-pointer">
+                <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-all cursor-pointer relative">
                     <p id="status-text" class="text-slate-500 font-black text-xs uppercase">Arraste o arquivo STL ou clique aqui</p>
-                    <input type="file" id="fileInput" accept=".stl" class="hidden">
+                    <input type="file" id="fileInput" accept=".stl" class="absolute inset-0 opacity-0 cursor-pointer">
                 </div>
                 
                 <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden hidden border-4 border-white">
@@ -100,7 +95,11 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-6 border-t border-slate-100">
+                    <button onclick="resetTransform()" class="w-full mt-4 bg-slate-100 text-slate-500 py-2 rounded-lg text-[10px] font-black border border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-all uppercase tracking-widest">
+                        Resetar Posição Original
+                    </button>
+
+                    <div class="mt-4 pt-6 border-t border-slate-100">
                         <div class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200">
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
                         </div>
@@ -165,7 +164,6 @@
             animate();
         }
 
-        // --- FUNÇÃO RESET ---
         function resetTransform() {
             if(!mesh) return;
             mesh.scale.set(1, 1, 1);
@@ -179,8 +177,11 @@
 
             keepOnGround();
             updatePrice();
-            
-            // Re-foca a câmera
+            autoFocus();
+        }
+
+        function autoFocus() {
+            if(!mesh) return;
             const box = new THREE.Box3().setFromObject(mesh);
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
@@ -239,20 +240,27 @@
             updatePrice();
         }
 
+        // --- LÓGICA DE UPLOAD E DRAG N DROP (REVISADA) ---
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('drop-zone');
-        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => { 
+            if(e.target.files[0]) handleFile(e.target.files[0]); 
+        };
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+            dropZone.addEventListener(eventName, (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                if(eventName === 'dragover') dropZone.classList.add('border-blue-500', 'bg-blue-50');
+                if(eventName === 'dragleave' || eventName === 'drop') dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            }, false);
         });
 
         dropZone.addEventListener('drop', (e) => {
             const file = e.dataTransfer.files[0];
             if (file && file.name.toLowerCase().endsWith('.stl')) handleFile(file);
         });
-
-        fileInput.onchange = (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); };
 
         function handleFile(file) {
             const reader = new FileReader();
@@ -297,4 +305,91 @@
                         `
                     });
 
-                    if(mesh) { transform.detach(); scene.remove
+                    if(mesh) { transform.detach(); scene.remove(mesh); }
+                    mesh = new THREE.Mesh(geometry, materialImpressao);
+                    scene.add(mesh);
+                    transform.attach(mesh);
+                    
+                    document.getElementById('viewer-container').classList.remove('hidden');
+                    document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
+                    document.getElementById('status-text').innerText = "Arquivo: " + file.name;
+                    
+                    currentVol = calculateVolume(geometry) / 1000;
+
+                    // Verifica se veio via link
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if(urlParams.has('s')) {
+                        document.getElementById('input-scale').value = urlParams.get('s');
+                        document.getElementById('input-rotX').value = urlParams.get('rx');
+                        document.getElementById('input-rotY').value = urlParams.get('ry');
+                        document.getElementById('input-rotZ').value = urlParams.get('rz');
+                        manualTransform();
+                    } else {
+                        autoFocus();
+                    }
+
+                    keepOnGround();
+                    updatePrice();
+                    onWindowResize();
+                } catch (err) { console.error("Erro ao carregar STL:", err); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function calculateVolume(geo) {
+            let vol = 0;
+            const pos = geo.attributes.position.array;
+            for(let i=0; i<pos.length; i+=9) {
+                const v1 = new THREE.Vector3(pos[i], pos[i+1], pos[i+2]);
+                const v2 = new THREE.Vector3(pos[i+3], pos[i+4], pos[i+5]);
+                const v3 = new THREE.Vector3(pos[i+6], pos[i+7], pos[i+8]);
+                vol += v1.dot(v2.cross(v3)) / 6;
+            }
+            return Math.abs(vol);
+        }
+
+        function updatePrice() {
+            if(!mesh) return;
+            const custoFilamento = parseFloat(document.getElementById('material').value);
+            const scale = mesh.scale.x; 
+            const realVol = currentVol * Math.pow(scale, 3);
+            const infill = parseFloat(document.getElementById('infill').value);
+            const resValue = parseFloat(document.getElementById('layerHeight').value);
+            
+            let multRes = 1.0;
+            if(resValue === 0.2) multRes = 1.2;
+            if(resValue === 0.1) multRes = 1.5;
+
+            const peso = (realVol * 1.25 * infill) * 1.1; 
+            const precoFinal = ((peso * custoFilamento) * multRes * 1.45) + 3.00;
+
+            const box = new THREE.Box3().setFromObject(mesh);
+            const size = new THREE.Vector3(); 
+            box.getSize(size);
+            
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+            document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
+        }
+
+        function sendWA() {
+            const total = document.getElementById('total').innerText;
+            const dims = document.getElementById('dims').innerText;
+            const esc = document.getElementById('input-scale').value;
+            const rx = document.getElementById('input-rotX').value;
+            const ry = document.getElementById('input-rotY').value;
+            const rz = document.getElementById('input-rotZ').value;
+
+            const baseUrl = window.location.href.split('?')[0];
+            const configLink = `${baseUrl}?s=${esc}&rx=${rx}&ry=${ry}&rz=${rz}`;
+
+            let msg = `*Novo Orçamento 3D* 🚀\n\n`;
+            msg += `*Medidas Finais:* ${dims} mm\n`;
+            msg += `*Valor Estimado:* ${total}\n\n`;
+            msg += `*⚙️ LINK DA CONFIGURAÇÃO:* \n${configLink}\n\n`;
+            msg += `_Abra o link e arraste o arquivo STL para ver a peça como eu configurei._`;
+
+            window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
+        }
+    </script>
+</body>
+</html>
