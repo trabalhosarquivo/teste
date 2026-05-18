@@ -1,321 +1,755 @@
 <!DOCTYPE html>
+
 <html lang="pt-br">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Orçador 3D - Versão Pro</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/STLLoader.js"></script>
+
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/TransformControls.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
+
         #viewer canvas { width: 100% !important; height: 100% !important; display: block; }
+
         input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+
         .limit-exceeded { background-color: #ef4444 !important; }
+
     </style>
+
 </head>
+
 <body class="bg-slate-50 font-sans text-slate-900">
+
     <div class="max-w-6xl mx-auto py-8 px-4">
+
         <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+
             <h1 class="text-2xl font-black text-slate-800 uppercase">Orçador <span class="text-blue-600">3D</span></h1>
+
             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">W: Mover | E: Girar | R: Escala</div>
+
         </div>
+
         
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
             <div class="lg:col-span-2 space-y-4">
+
                 <div id="drop-zone" class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition-all cursor-pointer relative">
+
                     <p id="status-text" class="text-slate-500 font-black text-xs uppercase">Arraste o arquivo STL ou clique aqui</p>
+
                     <input type="file" id="fileInput" accept=".stl" class="absolute inset-0 opacity-0 cursor-pointer">
+
                 </div>
+
                 
+
                 <div id="viewer-container" class="relative h-[550px] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden hidden border-4 border-white">
+
                     <div id="viewer" class="w-full h-full"></div>
+
                     <div id="size-alert" class="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg font-black text-[10px] uppercase hidden animate-pulse">
+
                         ⚠️ Tamanho excede a impressora
+
                     </div>
+
                     <div class="absolute top-4 left-4 flex flex-col gap-2">
+
                         <button onclick="setMode('translate')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Mover</button>
+
                         <button onclick="setMode('rotate')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Girar</button>
+
                         <button onclick="setMode('scale')" class="bg-white/90 p-2 rounded-lg text-[10px] font-black shadow-md hover:bg-blue-600 hover:text-white uppercase transition-all">Escalar</button>
+
                     </div>
+
                     <div class="absolute bottom-4 right-4 bg-slate-800/90 text-white p-3 rounded-xl text-[11px] backdrop-blur-md">
+
                         <span id="dims" class="font-mono text-lg">0.0 x 0.0 x 0.0</span> <span class="text-slate-400">mm</span>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <div class="space-y-6">
+
                 <div id="controls" class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 opacity-40 pointer-events-none">
+
                     <div class="space-y-4">
+
                         <label class="text-[10px] font-black text-slate-500 uppercase">Selecione a Impressora</label>
+
                         <select id="printerSelect" onchange="updatePrinterVolume()" class="w-full bg-blue-50 border-2 border-blue-200 rounded-xl p-3 font-bold text-blue-700 outline-none mb-2">
+
                             <option value="220,240,220">Impressora 01 (22 x 22 x h24 cm)</option>
+
                             <option value="0,0,0" disabled>Impressora 02 (Indisponível)</option>
+
                         </select>
+
+
 
                         <label class="text-[10px] font-black text-slate-500 uppercase">Configurações de Impressão</label>
-                        
-                        <div id="color-container" class="flex flex-wrap gap-2 mb-4"></div>
+
+                        <div class="flex gap-2 mb-4">
+
+                            <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
+
+                            <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all" ></button>
+
+                            <button onclick="changeColor('#ffffff')" class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 shadow-md hover:scale-110 transition-all"></button>
+
+                            <button onclick="changeColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md hover:scale-110 transition-all"></button>
+
+                        </div>
+
+
 
                         <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
+
                             <option value="0.35">PLA</option>
+
                             <option value="0.30">ABS</option>
+
                         </select>
+
                         
+
                         <select id="infill" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
+
                             <option value="0.20">20% - Leve</option>
+
                             <option value="0.50">50% - Resistente</option>
+
                             <option value="1.00">100% - Total</option>
+
                         </select>
+
+
 
                         <select id="layerHeight" onchange="updateResolution()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
+
                             <option value="0.3">0.3 mm (Rápido)</option>
+
                             <option value="0.2">0.2 mm (Normal)</option>
+
                             <option value="0.1">0.1 mm (Detalhamento)</option>
+
                         </select>
 
+
+
                         <div class="mt-6 pt-4 border-t border-slate-100 space-y-4">
+
                             <label class="text-[10px] font-black text-slate-500 uppercase">Ajustes Técnicos</label>
+
                             <div class="flex items-center gap-3">
+
                                 <span class="text-[10px] font-bold text-slate-400 w-16">ESCALA</span>
+
                                 <input type="number" id="input-scale" step="0.01" value="1.00" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-blue-600 outline-none">
+
                             </div>
+
                             <div class="grid grid-cols-3 gap-2">
+
                                 <input type="number" id="input-rotX" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="X°">
+
                                 <input type="number" id="input-rotY" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="Y°">
+
                                 <input type="number" id="input-rotZ" value="0" oninput="manualTransform()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none" placeholder="Z°">
+
                             </div>
+
                         </div>
+
                     </div>
+
+
 
                     <button onclick="resetTransform()" class="w-full mt-4 bg-slate-100 text-slate-500 py-2 rounded-lg text-[10px] font-black border border-slate-200 hover:bg-slate-200 transition-all uppercase">
+
                         Resetar Posição Original
+
                     </button>
 
+
+
                     <div class="mt-4 pt-6 border-t border-slate-100">
+
                         <div id="price-container" class="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-200 transition-colors">
+
                             <span id="total" class="block text-center text-4xl font-black text-white">R$ 0,00</span>
+
                         </div>
+
                     </div>
+
                     <button id="wa-button" onclick="sendWA()" class="w-full bg-slate-800 text-white font-black py-4 rounded-xl mt-6 uppercase text-xs hover:bg-slate-900 transition-all">Enviar para WhatsApp</button>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
+
     <script>
-        // =================================================================
-        // CONFIGURAÇÃO DE CORES DISPONÍVEIS (Modifique aqui facilmente)
-        // =================================================================
-        // true  -> Cor visível no painel
-        // false -> Cor oculta (indisponível)
-        const listaCores = [
-            { nome: 'Azul',     hex: '#3b82f6', ativo: true,  classeBg: 'bg-blue-500' },
-            { nome: 'Grafite',  hex: '#1e293b', ativo: true,  classeBg: 'bg-slate-800' },
-            { nome: 'Branco',   hex: '#ffffff', ativo: true,  classeBg: 'bg-white border-slate-200' },
-            { nome: 'Vermelho', hex: '#ef4444', ativo: false, classeBg: 'bg-red-500' },
-            { nome: 'Verde',    hex: '#22c55e', ativo: true,  classeBg: 'bg-green-500' } // Exemplo de nova cor adicionada
-        ];
-        // =================================================================
 
         let scene, camera, renderer, orbit, transform, mesh, printerVolume;
+
         let currentVol = 0;
-        let corSelecionadaPadrao = '#3b82f6'; // Fallback caso nenhuma esteja ativa
+
         const viewerDiv = document.getElementById('viewer');
 
-        // Função para gerar os botões de cores na tela
-        function renderizarBotoesCores() {
-            const container = document.getElementById('color-container');
-            container.innerHTML = ''; // Limpa o container antigo
 
-            let primeiraCorDefinida = false;
-
-            listaCores.forEach(cor => {
-                if (cor.ativo) {
-                    // Define a primeira cor ativa encontrada como a cor padrão de carregamento
-                    if (!primeiraCorDefinida) {
-                        corSelecionadaPadrao = cor.hex;
-                        primeiraCorDefinida = true;
-                    }
-
-                    const botao = document.createElement('button');
-                    botao.className = `w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all ${cor.classeBg}`;
-                    botao.title = cor.nome;
-                    botao.onclick = () => changeColor(cor.hex);
-                    container.appendChild(botao);
-                }
-            });
-        }
-
-        // Inicializa os botões antes de qualquer outra ação
-        renderizarBotoesCores();
 
         function initThree() {
+
             if (scene) return;
+
             scene = new THREE.Scene();
+
             scene.background = new THREE.Color(0x0f172a);
+
             
+
             camera = new THREE.PerspectiveCamera(45, viewerDiv.clientWidth / viewerDiv.clientHeight, 0.1, 10000);
+
             renderer = new THREE.WebGLRenderer({ antialias: true });
+
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+
             renderer.setPixelRatio(window.devicePixelRatio);
+
             viewerDiv.appendChild(renderer.domElement);
 
+
+
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
             const light = new THREE.DirectionalLight(0xffffff, 0.6);
+
             light.position.set(200, 200, 200);
+
             scene.add(light);
+
             
+
             scene.add(new THREE.GridHelper(500, 50, 0x334155, 0x1e293b));
 
+
+
             orbit = new THREE.OrbitControls(camera, renderer.domElement);
+
             transform = new THREE.TransformControls(camera, renderer.domElement);
 
+
+
             transform.addEventListener('change', () => {
+
                 if (mesh) {
+
                     document.getElementById('input-scale').value = mesh.scale.x.toFixed(2);
+
                     document.getElementById('input-rotX').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.x));
+
                     document.getElementById('input-rotY').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.y));
+
                     document.getElementById('input-rotZ').value = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.z));
+
                     keepOnGround();
+
                     updatePrice();
+
                 }
+
             });
+
             
+
             transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
+
             scene.add(transform);
+
             
+
             updatePrinterVolume();
 
+
+
             window.addEventListener('resize', onWindowResize);
+
             animate();
+
         }
+
+
 
         function updatePrinterVolume() {
+
             if (!scene) return;
+
             if (printerVolume) scene.remove(printerVolume);
+
             const dims = document.getElementById('printerSelect').value.split(',').map(Number);
+
             const w = dims[0], h = dims[1], d = dims[2];
+
             const geometry = new THREE.BoxGeometry(w, h, d);
+
             const edges = new THREE.EdgesGeometry(geometry);
+
             printerVolume = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 }));
+
             printerVolume.position.y = h / 2;
+
             scene.add(printerVolume);
+
             if(mesh) updatePrice();
+
         }
+
+
 
         function resetTransform() {
+
             if(!mesh) return;
+
             mesh.scale.set(1, 1, 1);
+
             mesh.rotation.set(0, 0, 0);
+
             mesh.position.set(0, 0, 0);
+
             document.getElementById('input-scale').value = "1.00";
+
             document.getElementById('input-rotX').value = "0";
+
             document.getElementById('input-rotY').value = "0";
+
             document.getElementById('input-rotZ').value = "0";
+
             keepOnGround();
+
             updatePrice();
+
             autoFocus();
+
         }
+
+
 
         function autoFocus() {
+
             if(!mesh) return;
+
             const box = new THREE.Box3().setFromObject(mesh);
+
             const size = box.getSize(new THREE.Vector3());
+
             const maxDim = Math.max(size.x, size.y, size.z);
+
             const fov = camera.fov * (Math.PI / 180);
+
             let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 3;
+
             camera.position.set(cameraZ, cameraZ, cameraZ);
+
             camera.lookAt(0, size.y/2, 0);
+
             orbit.target.set(0, size.y/2, 0);
+
             orbit.update();
+
         }
+
+
 
         function onWindowResize() {
+
             if(!camera || !renderer) return;
+
             camera.aspect = viewerDiv.clientWidth / viewerDiv.clientHeight;
+
             camera.updateProjectionMatrix();
+
             renderer.setSize(viewerDiv.clientWidth, viewerDiv.clientHeight);
+
         }
+
+
 
         function manualTransform() {
+
             if (!mesh) return;
+
             const s = parseFloat(document.getElementById('input-scale').value) || 0.01;
+
             mesh.scale.set(s, s, s);
+
             mesh.rotation.set(
+
                 THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotX').value) || 0),
+
                 THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotY').value) || 0),
+
                 THREE.MathUtils.degToRad(parseFloat(document.getElementById('input-rotZ').value) || 0)
+
             );
+
             keepOnGround();
+
             updatePrice();
+
         }
+
+
 
         function keepOnGround() {
+
             if(!mesh) return;
+
             mesh.updateMatrixWorld();
+
             const box = new THREE.Box3().setFromObject(mesh);
+
             mesh.position.y -= box.min.y;
+
         }
 
-        // Altera o modo do gizmo
+
+
         function setMode(m) { if(transform) transform.setMode(m); }
+
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
+
+
         function changeColor(hex) {
+
             if (mesh && mesh.material.uniforms) mesh.material.uniforms.color.value.set(hex);
+
         }
+
+
 
         function updateResolution() {
+
             if(mesh && mesh.material.uniforms) mesh.material.uniforms.layerHeight.value = parseFloat(document.getElementById('layerHeight').value);
+
             updatePrice();
+
         }
 
+
+
         const fileInput = document.getElementById('fileInput');
+
         const dropZone = document.getElementById('drop-zone');
+
+
 
         fileInput.onchange = (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); };
 
+
+
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+
             dropZone.addEventListener(eventName, (e) => { 
+
                 e.preventDefault(); 
+
                 e.stopPropagation(); 
+
                 if(eventName === 'dragover') dropZone.classList.add('border-blue-500', 'bg-blue-50');
+
                 if(eventName === 'dragleave' || eventName === 'drop') dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+
             }, false);
+
         });
+
+
 
         dropZone.addEventListener('drop', (e) => {
+
             const file = e.dataTransfer.files[0];
+
             if (file && file.name.toLowerCase().endsWith('.stl')) handleFile(file);
+
         });
 
+
+
         function handleFile(file) {
+
             const reader = new FileReader();
+
             reader.onload = (ev) => {
+
                 initThree(); 
+
                 const loader = new THREE.STLLoader();
+
                 const geometry = loader.parse(ev.target.result);
+
                 geometry.computeVertexNormals();
+
                 geometry.center();
 
+
+
                 const mat = new THREE.ShaderMaterial({
+
                     uniforms: {
-                        // Utiliza a primeira cor ativa da sua lista ao carregar a peça
-                        color: { value: new THREE.Color(corSelecionadaPadrao) },
+
+                        color: { value: new THREE.Color(0x3b82f6) },
+
                         layerHeight: { value: parseFloat(document.getElementById('layerHeight').value) },
+
                         lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
+
                     },
+
                     vertexShader: `varying vec3 vWorldPosition; varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWorldPosition = wp.xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+
                     fragmentShader: `varying vec3 vWorldPosition; varying vec3 vNormal; uniform vec3 color; uniform float layerHeight; uniform vec3 lightDirection; void main() { float dotNL = max(dot(vNormal, lightDirection), 0.0); float intensity = 0.4 + 0.6 * dotNL; float level = fract(vWorldPosition.y / layerHeight); float edge = smoothstep(0.0, 0.15, level) * smoothstep(1.0, 0.85, level); vec3 layerColor = color * (0.8 + 0.2 * edge); gl_FragColor = vec4(layerColor * intensity, 1.0); }`
+
                 });
 
+
+
                 if(mesh) { transform.detach(); scene.remove(mesh); }
+
                 mesh = new THREE.Mesh(geometry, mat);
+
                 scene.add(mesh);
+
                 transform.attach(mesh);
+
                 
+
                 document.getElementById('viewer-container').classList.remove('hidden');
+
                 document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-                document.getElementById('status-text').innerText = "Arquivo:
+
+                document.getElementById('status-text').innerText = "Arquivo: " + file.name;
+
+                
+
+                currentVol = calculateVolume(geometry) / 1000;
+
+                
+
+                // Aplicar parâmetros da URL se existirem
+
+                const params = new URLSearchParams(window.location.search);
+
+                if(params.has('s')) document.getElementById('input-scale').value = params.get('s');
+
+                if(params.has('rx')) document.getElementById('input-rotX').value = params.get('rx');
+
+                if(params.has('ry')) document.getElementById('input-rotY').value = params.get('ry');
+
+                if(params.has('rz')) document.getElementById('input-rotZ').value = params.get('rz');
+
+                
+
+                if(params.has('s')) manualTransform();
+
+                
+
+                autoFocus();
+
+                keepOnGround();
+
+                updatePrice();
+
+                onWindowResize();
+
+            };
+
+            reader.readAsArrayBuffer(file);
+
+        }
+
+
+
+        function calculateVolume(geo) {
+
+            let vol = 0;
+
+            const pos = geo.attributes.position.array;
+
+            for(let i=0; i<pos.length; i+=9) {
+
+                const v1 = new THREE.Vector3(pos[i], pos[i+1], pos[i+2]);
+
+                const v2 = new THREE.Vector3(pos[i+3], pos[i+4], pos[i+5]);
+
+                const v3 = new THREE.Vector3(pos[i+6], pos[i+7], pos[i+8]);
+
+                vol += v1.dot(v2.cross(v3)) / 6;
+
+            }
+
+            return Math.abs(vol);
+
+        }
+
+
+
+        function updatePrice() {
+
+            if(!mesh) return;
+
+            const custoFilamento = parseFloat(document.getElementById('material').value);
+
+            const scale = mesh.scale.x; 
+
+            const realVol = currentVol * Math.pow(scale, 3);
+
+            const infill = parseFloat(document.getElementById('infill').value);
+
+            const resValue = parseFloat(document.getElementById('layerHeight').value);
+
+            
+
+            const box = new THREE.Box3().setFromObject(mesh);
+
+            const size = new THREE.Vector3(); 
+
+            box.getSize(size);
+
+
+
+            const printerDims = document.getElementById('printerSelect').value.split(',').map(Number);
+
+            const exceeds = size.x > printerDims[0] || size.y > printerDims[1] || size.z > printerDims[2];
+
+
+
+            const alertBox = document.getElementById('size-alert');
+
+            const priceContainer = document.getElementById('price-container');
+
+            const waButton = document.getElementById('wa-button');
+
+
+
+            if (exceeds) {
+
+                alertBox.classList.remove('hidden');
+
+                priceContainer.classList.add('limit-exceeded');
+
+                document.getElementById('total').innerText = "INDISPONÍVEL";
+
+                waButton.disabled = true;
+
+                waButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+                if(printerVolume) printerVolume.material.color.setHex(0xef4444);
+
+            } else {
+
+                alertBox.classList.add('hidden');
+
+                priceContainer.classList.remove('limit-exceeded');
+
+                waButton.disabled = false;
+
+                waButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if(printerVolume) printerVolume.material.color.setHex(0x3b82f6);
+
+
+
+                const fatorAltura = 1 + (size.y / 500);
+
+                let multRes = (resValue === 0.2) ? 1.2 : (resValue === 0.1 ? 1.5 : 1.0);
+
+                const peso = (realVol * 1.25 * infill) * 1.1; 
+
+                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * (1.45+0.5)) + 1.30;
+
+                document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
+
+            }
+
+            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
+
+        }
+
+
+
+        function sendWA() {
+
+            const total = document.getElementById('total').innerText;
+
+            const dims = document.getElementById('dims').innerText;
+
+            const esc = document.getElementById('input-scale').value;
+
+            const rx = document.getElementById('input-rotX').value;
+
+            const ry = document.getElementById('input-rotY').value;
+
+            const rz = document.getElementById('input-rotZ').value;
+
+            const printer = document.getElementById('printerSelect').options[document.getElementById('printerSelect').selectedIndex].text;
+
+            
+
+            const baseUrl = window.location.href.split('?')[0];
+
+            const configLink = `${baseUrl}?s=${esc}&rx=${rx}&ry=${ry}&rz=${rz}`;
+
+
+
+            let msg = `*Novo Orçamento 3D* 🚀\n\n`;
+
+            msg += `*Máquina:* ${printer}\n`;
+
+            msg += `*Medidas:* ${dims} mm\n`;
+
+            msg += `*Valor:* ${total}\n\n`;
+
+            msg += `*Link de Configuração:* ${configLink}`;
+
+
+
+            window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
+
+        }
+
+    </script>
+
+</body>
+
+</html>
