@@ -55,12 +55,8 @@
                         </select>
 
                         <label class="text-[10px] font-black text-slate-500 uppercase">Configurações de Impressão</label>
-                        <div class="flex gap-2 mb-4">
-                            <button onclick="changeColor('#3b82f6')" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md hover:scale-110 transition-all" disabled></button>
-                            <button onclick="changeColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow-md hover:scale-110 transition-all" disabled></button>
-                            <button onclick="changeColor('#ffffff')" class="w-8 h-8 rounded-full bg-white border-2 border-slate-200 shadow-md hover:scale-110 transition-all"></button>
-                            <button onclick="changeColor('#ef4444')" class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md hover:scale-110 transition-all" disabled></button>
-                        </div>
+                        
+                        <div id="color-container" class="flex flex-wrap gap-2 mb-4"></div>
 
                         <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
                             <option value="0.35">PLA</option>
@@ -109,9 +105,51 @@
     </div>
 
     <script>
+        // =================================================================
+        // CONFIGURAÇÃO DE CORES DISPONÍVEIS (Modifique aqui facilmente)
+        // =================================================================
+        // true  -> Cor visível no painel
+        // false -> Cor oculta (indisponível)
+        const listaCores = [
+            { nome: 'Azul',     hex: '#3b82f6', ativo: true,  classeBg: 'bg-blue-500' },
+            { nome: 'Grafite',  hex: '#1e293b', ativo: true,  classeBg: 'bg-slate-800' },
+            { nome: 'Branco',   hex: '#ffffff', ativo: true,  classeBg: 'bg-white border-slate-200' },
+            { nome: 'Vermelho', hex: '#ef4444', ativo: false, classeBg: 'bg-red-500' },
+            { nome: 'Verde',    hex: '#22c55e', ativo: true,  classeBg: 'bg-green-500' } // Exemplo de nova cor adicionada
+        ];
+        // =================================================================
+
         let scene, camera, renderer, orbit, transform, mesh, printerVolume;
         let currentVol = 0;
+        let corSelecionadaPadrao = '#3b82f6'; // Fallback caso nenhuma esteja ativa
         const viewerDiv = document.getElementById('viewer');
+
+        // Função para gerar os botões de cores na tela
+        function renderizarBotoesCores() {
+            const container = document.getElementById('color-container');
+            container.innerHTML = ''; // Limpa o container antigo
+
+            let primeiraCorDefinida = false;
+
+            listaCores.forEach(cor => {
+                if (cor.ativo) {
+                    // Define a primeira cor ativa encontrada como a cor padrão de carregamento
+                    if (!primeiraCorDefinida) {
+                        corSelecionadaPadrao = cor.hex;
+                        primeiraCorDefinida = true;
+                    }
+
+                    const botao = document.createElement('button');
+                    botao.className = `w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all ${cor.classeBg}`;
+                    botao.title = cor.nome;
+                    botao.onclick = () => changeColor(cor.hex);
+                    container.appendChild(botao);
+                }
+            });
+        }
+
+        // Inicializa os botões antes de qualquer outra ação
+        renderizarBotoesCores();
 
         function initThree() {
             if (scene) return;
@@ -221,6 +259,7 @@
             mesh.position.y -= box.min.y;
         }
 
+        // Altera o modo do gizmo
         function setMode(m) { if(transform) transform.setMode(m); }
         function animate() { requestAnimationFrame(animate); if(renderer) renderer.render(scene, camera); }
 
@@ -263,7 +302,8 @@
 
                 const mat = new THREE.ShaderMaterial({
                     uniforms: {
-                        color: { value: new THREE.Color(0x3b82f6) },
+                        // Utiliza a primeira cor ativa da sua lista ao carregar a peça
+                        color: { value: new THREE.Color(corSelecionadaPadrao) },
                         layerHeight: { value: parseFloat(document.getElementById('layerHeight').value) },
                         lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() }
                     },
@@ -278,101 +318,4 @@
                 
                 document.getElementById('viewer-container').classList.remove('hidden');
                 document.getElementById('controls').classList.remove('opacity-40', 'pointer-events-none');
-                document.getElementById('status-text').innerText = "Arquivo: " + file.name;
-                
-                currentVol = calculateVolume(geometry) / 1000;
-                
-                // Aplicar parâmetros da URL se existirem
-                const params = new URLSearchParams(window.location.search);
-                if(params.has('s')) document.getElementById('input-scale').value = params.get('s');
-                if(params.has('rx')) document.getElementById('input-rotX').value = params.get('rx');
-                if(params.has('ry')) document.getElementById('input-rotY').value = params.get('ry');
-                if(params.has('rz')) document.getElementById('input-rotZ').value = params.get('rz');
-                
-                if(params.has('s')) manualTransform();
-                
-                autoFocus();
-                keepOnGround();
-                updatePrice();
-                onWindowResize();
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function calculateVolume(geo) {
-            let vol = 0;
-            const pos = geo.attributes.position.array;
-            for(let i=0; i<pos.length; i+=9) {
-                const v1 = new THREE.Vector3(pos[i], pos[i+1], pos[i+2]);
-                const v2 = new THREE.Vector3(pos[i+3], pos[i+4], pos[i+5]);
-                const v3 = new THREE.Vector3(pos[i+6], pos[i+7], pos[i+8]);
-                vol += v1.dot(v2.cross(v3)) / 6;
-            }
-            return Math.abs(vol);
-        }
-
-        function updatePrice() {
-            if(!mesh) return;
-            const custoFilamento = parseFloat(document.getElementById('material').value);
-            const scale = mesh.scale.x; 
-            const realVol = currentVol * Math.pow(scale, 3);
-            const infill = parseFloat(document.getElementById('infill').value);
-            const resValue = parseFloat(document.getElementById('layerHeight').value);
-            
-            const box = new THREE.Box3().setFromObject(mesh);
-            const size = new THREE.Vector3(); 
-            box.getSize(size);
-
-            const printerDims = document.getElementById('printerSelect').value.split(',').map(Number);
-            const exceeds = size.x > printerDims[0] || size.y > printerDims[1] || size.z > printerDims[2];
-
-            const alertBox = document.getElementById('size-alert');
-            const priceContainer = document.getElementById('price-container');
-            const waButton = document.getElementById('wa-button');
-
-            if (exceeds) {
-                alertBox.classList.remove('hidden');
-                priceContainer.classList.add('limit-exceeded');
-                document.getElementById('total').innerText = "INDISPONÍVEL";
-                waButton.disabled = true;
-                waButton.classList.add('opacity-50', 'cursor-not-allowed');
-                if(printerVolume) printerVolume.material.color.setHex(0xef4444);
-            } else {
-                alertBox.classList.add('hidden');
-                priceContainer.classList.remove('limit-exceeded');
-                waButton.disabled = false;
-                waButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                if(printerVolume) printerVolume.material.color.setHex(0x3b82f6);
-
-                const fatorAltura = 1 + (size.y / 500);
-                let multRes = (resValue === 0.2) ? 1.2 : (resValue === 0.1 ? 1.5 : 1.0);
-                const peso = (realVol * 1.25 * infill) * 1.1; 
-                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * (1.45+0.5)) + 1.30;
-                document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
-            }
-            document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
-        }
-
-        function sendWA() {
-            const total = document.getElementById('total').innerText;
-            const dims = document.getElementById('dims').innerText;
-            const esc = document.getElementById('input-scale').value;
-            const rx = document.getElementById('input-rotX').value;
-            const ry = document.getElementById('input-rotY').value;
-            const rz = document.getElementById('input-rotZ').value;
-            const printer = document.getElementById('printerSelect').options[document.getElementById('printerSelect').selectedIndex].text;
-            
-            const baseUrl = window.location.href.split('?')[0];
-            const configLink = `${baseUrl}?s=${esc}&rx=${rx}&ry=${ry}&rz=${rz}`;
-
-            let msg = `*Novo Orçamento 3D* 🚀\n\n`;
-            msg += `*Máquina:* ${printer}\n`;
-            msg += `*Medidas:* ${dims} mm\n`;
-            msg += `*Valor:* ${total}\n\n`;
-            msg += `*Link de Configuração:* ${configLink}`;
-
-            window.open(`https://wa.me/5511996161878?text=${window.encodeURIComponent(msg)}`);
-        }
-    </script>
-</body>
-</html>
+                document.getElementById('status-text').innerText = "Arquivo:
