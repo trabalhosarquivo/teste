@@ -347,7 +347,7 @@
                 const fatorAltura = 1 + (size.y / 500);
                 let multRes = (resValue === 0.2) ? 1.2 : (resValue === 0.1 ? 1.5 : 1.0);
                 const peso = (realVol * 1.25 * infill) * 1.1; 
-                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 3.00;
+                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 6.00;
                 document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
             }
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
