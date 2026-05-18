@@ -63,8 +63,8 @@
                         </div>
 
                         <select id="material" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
-                            <option value="0.30">PLA - Pro</option>
-                            <option value="0.40">PETG - XT</option>
+                            <option value="0.50">PLA - Pro</option>
+                            <option value="0.70">PETG - XT</option>
                         </select>
                         
                         <select id="infill" onchange="updatePrice()" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:border-blue-500">
@@ -347,7 +347,7 @@
                 const fatorAltura = 1 + (size.y / 500);
                 let multRes = (resValue === 0.2) ? 1.2 : (resValue === 0.1 ? 1.5 : 1.0);
                 const peso = (realVol * 1.25 * infill) * 1.1; 
-                const precoFinal = (((2 * peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 2.00;
+                const precoFinal = (((peso * custoFilamento) * multRes) * fatorAltura * 1.45) + 2.00;
                 document.getElementById('total').innerText = "R$ " + precoFinal.toFixed(2).replace('.', ',');
             }
             document.getElementById('dims').innerText = `${size.x.toFixed(1)} x ${size.y.toFixed(1)} x ${size.z.toFixed(1)}`;
